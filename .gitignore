@@ -1,0 +1,36 @@
+# Ignore venv
+venv/
+
+# Ignore Streamlit secrets
+.streamlit/
+
+# Ignore Supabase secrets
+.supabase/
+
+# Ignore Python environment
+__pycache__/
+
+# Ignore IDE files
+.idea/
+.vscode/
+
+# Ignore temporary files
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore logs
+*.log
+
+# Ignore temporary files
+*.tmp
+
+# Ignore backup files
+*~
+
+# Ignore environment variables
+.env
+
+# OS metadata
+.DS_Store
+Thumbs.db

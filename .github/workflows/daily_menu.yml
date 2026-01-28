@@ -1,0 +1,36 @@
+name: Daily Menu Notification
+
+on:
+  schedule:
+    # Runs at 12:00 UTC, which is 7:00 AM EST (Standard Time) or 8:00 AM EDT.
+    # To strictly hit 7:00 AM EST (UTC-5), we use 12:00 UTC.
+    - cron: '0 12 * * *'
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  send-menu:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Send Menu Script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_EMAIL: ${{ secrets.SMTP_EMAIL }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: python send_menu.py
