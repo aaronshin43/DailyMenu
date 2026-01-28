@@ -1,11 +1,20 @@
-def generate_html_email(menu_items, date_str):
+def generate_html_email(menu_items, date_str, user_email):
     """
     Generates a clean HTML email body from the filtered menu items.
     menu_items: List of dicts [{'meal': ..., 'station': ..., 'name': ..., 'description': ...}]
+    user_email: The recipient's email address for generating personalized links.
     """
+    # Base URL for the Streamlit app
+    BASE_URL = "https://dson-dailymenu.streamlit.app"
+    
+    # Generate Links
+    manage_url = f"{BASE_URL}/?email={user_email}"
+    unsubscribe_url = f"{BASE_URL}/?email={user_email}&action=unsubscribe"
+
     # Group by Meal -> Station
     grouped = {}
     for item in menu_items:
+# ... (grouping logic remains same until HTML generation) ...
         meal = item['meal'].capitalize()
         station = item['station']
         if meal not in grouped:
@@ -64,10 +73,10 @@ def generate_html_email(menu_items, date_str):
     if not has_content:
         html += '<p style="text-align:center; padding: 20px;">No menu items matched your preferences for today.</p>'
 
-    html += """
+    html += f"""
             <div class="footer">
                 <p>You are receiving this email because you subscribed to Dickinson Dining Daily.</p>
-                <p><a href="#">Manage Preferences</a> | <a href="#">Unsubscribe</a></p>
+                <p><a href="{manage_url}">Manage Preferences</a> | <a href="{unsubscribe_url}">Unsubscribe</a></p>
             </div>
         </div>
     </body>

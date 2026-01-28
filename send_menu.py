@@ -131,7 +131,7 @@ def main():
             continue
             
         # 4. Generate & Send
-        html_body = generate_html_email(filtered_items, today.strftime("%A, %B %d, %Y"))
+        html_body = generate_html_email(filtered_items, today.strftime("%A, %B %d, %Y"), email)
         subject = f"Dickinson Dining Menu - {today.strftime('%b %d')}"
         
         print(f"Sending email to {email} with {len(filtered_items)} items...")

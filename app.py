@@ -42,9 +42,21 @@ def upsert_user(email, meals, stations):
     except Exception as e:
         return False, f"Error saving subscription: {str(e)}"
 
+def delete_user(email):
+    try:
+        response = supabase.table("users").update({"is_active": False}).eq("email", email).execute()
+        return True, "Successfully unsubscribed. We'll miss you!"
+    except Exception as e:
+        return False, f"Error unsubscribing: {str(e)}"
+
 # --- UI Layout ---
 # Update page config with new icon
-st.set_page_config(page_title=PAGE_TITLE, page_icon="cutlery.png", layout="centered")
+st.set_page_config(page_title=PAGE_TITLE, page_icon="logo.png", layout="centered")
+
+# Handle Query Parameters
+query_params = st.query_params
+default_email = query_params.get("email", "")
+action = query_params.get("action", "")
 
 # Custom CSS for complete styling
 st.markdown("""
@@ -87,7 +99,14 @@ st.markdown("""
     /* 5. Button Styling */
     .stButton>button {
         width: 100%;
-        margin-top: 20px;
+        margin-top: 10px;
+    }
+    
+    /* Unsubscribe Button Red */
+    .unsubscribe-btn > button {
+        background-color: #ffcccc;
+        color: #cc0000;
+        border: 1px solid #cc0000;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -95,15 +114,42 @@ st.markdown("""
 # 1. Header with Logo
 col1, col2 = st.columns([1, 5])
 with col1:
-    st.image("cutlery.png", width=70) # Image logic handled by CSS to be unclickable
+    st.image("logo.png", width=70) # Image logic handled by CSS to be unclickable
 with col2:
     st.title("Dickinson Daily")
     
 st.write("Get the cafeteria menu delivered to your inbox every morning at 7 AM.")
 st.write("---")
 
+# --- Unsubscribe Flow ---
+if action == "unsubscribe" and default_email:
+    st.error("⚠️ You are about to unsubscribe.")
+    st.write(f"Email: **{default_email}**")
+    st.write("Are you sure you want to stop receiving daily menus?")
+    
+    if st.button("Unsubscribe", type="primary"):
+        success, msg = delete_user(default_email)
+        if success:
+            st.success(msg)
+            # Make sure it stops execution or redirects
+        else:
+            st.error(msg)
+            
+    if st.button("Manage Preferences"):
+        # Clear action param to return to main view (requires streamlit>=1.30 for cleaner handling, 
+        # or just letting it re-render below might be tricky without rerun)
+        # Simple hack: just clear params and rerun
+        st.query_params["action"] = ""
+        st.rerun()
+        
+    # Stop processing the rest of the page if in unsubscribe mode
+    st.stop()
+
+
+# --- Main Subscription Flow ---
+
 # 2. Email Input
-email = st.text_input("📧  Email Address", placeholder="student@dickinson.edu")
+email = st.text_input("📧  Email Address", value=default_email, placeholder="student@dickinson.edu")
 
 # 3. Preferences
 st.subheader("Preferences")
