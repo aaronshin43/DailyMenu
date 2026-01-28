@@ -73,7 +73,7 @@ st.markdown("""
         border-radius: 15px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         max-width: 700px;
-        margin-top: 2rem;
+        margin-top: 6rem;
     }
     
     /* 3. Hide Anchor Links (Chain icons next to headers) */

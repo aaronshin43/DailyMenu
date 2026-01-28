@@ -80,13 +80,11 @@ def parse_menu(daily_menu: Dict[str, Any], target_date: Optional[datetime.date] 
                     continue
                 
                 food_name = food.get('name', 'Unknown')
-                description = food.get('description', '')
                 
                 parsed_items.append({
                     'meal': meal_type,
                     'station': current_station,
                     'name': food_name,
-                    'description': description
                 })
                 
     return parsed_items
