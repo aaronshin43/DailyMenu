@@ -23,6 +23,31 @@ def generate_confirmation_email(user_email, token):
     """
     return html
 
+def generate_manage_link_email(user_email, token):
+    """
+    Generates an email with a link to manage preferences for existing users.
+    """
+    BASE_URL = "https://dson-dailymenu.streamlit.app"
+    manage_url = f"{BASE_URL}/?token={token}"
+    
+    html = f"""
+    <html>
+    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
+            <h2 style="color: #d32f2f;">Manage Your Preferences</h2>
+            <p>You requested a link to manage your Dickinson Daily Menu preferences.</p>
+            <div style="margin: 30px 0;">
+                <a href="{manage_url}" style="background-color: #d32f2f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                    Update Preferences
+                </a>
+            </div>
+            <p style="font-size: 0.9em; color: #666;">If you didn't request this, consider it a friendly reminder that you are subscribed!</p>
+        </div>
+    </body>
+    </html>
+    """
+    return html
+
 def generate_html_email(menu_items, date_str, token):
     """
     Generates a clean HTML email body from the filtered menu items.

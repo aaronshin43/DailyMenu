@@ -4,7 +4,7 @@ import uuid
 from supabase import create_client, Client
 from services.utils import get_available_stations, fetch_menu_data, parse_menu, filter_menu_for_user
 from services.email_sender import send_email
-from services.email_templates import generate_confirmation_email, generate_html_email
+from services.email_templates import generate_confirmation_email, generate_html_email, generate_manage_link_email
 
 # --- Constants & Config ---
 PAGE_TITLE = "Dickinson Daily Menu"
@@ -281,7 +281,7 @@ if st.columns(btn_column)[1].button(btn_text, type="primary"):
     else:
         with st.spinner("Processing..."):
             if user_data:
-                # Update Existing (via Token)
+                # Update Existing (via Token - Already Logged In)
                 # We do NOT let them change email here for security (verified by token)
                 data = {
                     "preferences": {"meals": selected_meals, "stations": selected_stations}
@@ -292,34 +292,57 @@ if st.columns(btn_column)[1].button(btn_text, type="primary"):
                 except Exception as e:
                     st.error(f"Error updating: {e}")
             else:
-                # New User
-                # 1. Generate Token
-                new_token = str(uuid.uuid4())
-                # 2. Insert with is_active=False
-                data = {
-                    "email": email,
-                    "token": new_token,
-                    "preferences": {"meals": selected_meals, "stations": selected_stations},
-                    "is_active": False
-                }
+                # No Token - check if email exists in DB
                 try:
-                    # Upsert on email conflict?
-                    # If email exists, we might want to RESEND confirmation or treat as update?
-                    # For security, let's just Upsert. It will reset the token and is_active=False.
-                    res = supabase.table("users").upsert(data, on_conflict="email").execute()
+                    existing_user_res = supabase.table("users").select("*").eq("email", email).execute()
+                    existing_user = existing_user_res.data[0] if existing_user_res.data else None
                     
-                    # 3. Send Confirmation Email
-                    html = generate_confirmation_email(email, new_token)
-                    send_success = send_email(email, "Confirm your Dickinson Daily Subscription", html)
-                    
-                    if send_success:
-                        st.success("✅ Confirmation email sent!")
-                        st.info(f"Please check your inbox (and junk folder) at {email} to activate your subscription.")
-                    else:
-                        st.error("Error sending confirmation email. Please try again.")
+                    if existing_user and existing_user['is_active']:
+                        # --- CASE 1: Existing Active User ---
+                        # Send "Magic Link" to manage preferences
+                        # Do NOT update preferences from this form to prevent spoofing
+                        current_token = existing_user['token']
+                        html = generate_manage_link_email(email, current_token)
+                        send_success = send_email(email, "Manage your Dickinson Daily Menu Preferences", html)
                         
+                        if send_success:
+                            st.info(f"You are already subscribed! We've sent a secure link to manage your preferences to **{email}**.")
+                            st.write("Please check your inbox to update your settings.")
+                        else:
+                            st.error("Error sending access email.")
+                            
+                    else:
+                        # --- CASE 2: Resubscribe (Inactive) or CASE 3: New User ---
+                        # Generates new token for security rotation (for resubscribers)
+                        new_token = str(uuid.uuid4())
+                        
+                        data = {
+                            "email": email,
+                            "token": new_token,
+                            "preferences": {"meals": selected_meals, "stations": selected_stations},
+                            "is_active": False # Requires confirmation
+                        }
+                        
+                        # Use Upsert (Handles both New and Resubscribe)
+                        res = supabase.table("users").upsert(data, on_conflict="email").execute()
+                        
+                        # Send Confirmation Email
+                        html = generate_confirmation_email(email, new_token)
+                        send_success = send_email(email, "Confirm your Dickinson Daily Subscription", html)
+                        
+                        if send_success:
+                            if existing_user:
+                                st.success("Welcome back!")
+                            else:
+                                st.success("Thanks for subscribing!")
+                                
+                            st.info(f"✅ Confirmation email sent to **{email}**.")
+                            st.write("Please click the link in the email to activate your daily menu.")
+                        else:
+                            st.error("Error sending confirmation email. Please try again.")
+
                 except Exception as e:
-                    st.error(f"Error subscribing: {e}")
+                    st.error(f"Error checking user status: {e}")
 
 
 # Footer
