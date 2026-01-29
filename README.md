@@ -111,3 +111,7 @@ This makes the subscription page accessible to everyone.
      ```
 5. **Deploy**: Click **Deploy**. Your app is now live!
 
+## Todo
+- [ ] send_emaily to specific users (for testing)
+- [ ] security: manage preferences (url params are not secure -> maybe use uuid?)
+- [ ] first email goes to junk -> fix (maybe add instructions to move to inbox?)
