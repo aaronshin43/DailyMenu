@@ -107,10 +107,12 @@ This makes the subscription page accessible to everyone.
      ```toml
      [supabase]
      url = "YOUR_SUPABASE_URL"
-     5. **Deploy**: Click **Deploy**. Your app is now live!
+     key = "YOUR_SUPABASE_KEY"
+     ```
+5. **Deploy**: Click **Deploy**. Your app is now live!
 
 ## Todo
-- [ ] fix dark mode bug (unsubscribe page -> manage preferences(/?email=aaronshin.exe%40gmail.com&action=) -> breaks some styling)
+- [ ] fix dark mode bug (unsubscribe page -> manage preferences(/?email=example%40gmail.com&action=) -> breaks some styling)
 - [ ] send_emaily to specific users (for testing)
 - [ ] security: manage preferences (url params are not secure -> maybe use uuid?)
 - [ ] first email goes to junk -> fix (maybe add instructions to move to inbox?)
