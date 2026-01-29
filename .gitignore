@@ -2,7 +2,7 @@
 venv/
 
 # Ignore Streamlit secrets
-.streamlit/
+.streamlit/secrets.toml
 
 # Ignore Supabase secrets
 .supabase/
