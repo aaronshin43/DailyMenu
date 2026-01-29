@@ -77,97 +77,6 @@ st.markdown("""
         margin-top: 6rem;
     }
 
-    /* Dark Mode Overrides */
-    @media (prefers-color-scheme: dark) {
-        /* In Dark Mode: Dark Background, Gray Card */
-        .stApp {
-            background-color: #202124;
-        }
-        
-        .stAppToolbar, .stMainMenuPopover, .st-emotion-cache-1v6glgu li, .stMainMenuPopover .st-f7 {
-            background-color: #292a2d !important;
-        }
-
-        .st-emotion-cache-19i1c {
-            border-top: 1px solid #d3d3d3 !important;
-            opacity: 0.3;
-        }
-
-        .block-container {
-            background-color: #292a2d;
-            color: #e0e0e0; /* Light text for readability */
-            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.6);
-        }
-
-        /* Force text colors for various elements in dark mode to ensure visibility on gray card */
-        h1, h2, h3, h4, h5, h6, p, li, span, div, label {
-            color: #e0e0e0;
-        }
-        
-        /* Specific override for Streamlit input labels if needed, though the above global might catch it */
-        .stTextInput label, .stSelectbox label, .stMultiSelect label {
-            color: #292a2d !important;
-        }
-
-        .stCheckbox span {
-            border: 1px solid #e0e0e0 !important;
-        }
-
-        /* Input Fields & Multiselect (Dark Mode) */
-        /* Using data-baseweb selectors for stability across re-renders */
-        [data-baseweb="input"] > div,
-        [data-baseweb="select"] > div {
-            background-color: #292a2d !important;
-            border-color: #ffffff !important;
-            color: #ffffff !important;
-        }
-
-        /* Ensure the text inside the input/select is visible */
-        [data-baseweb="input"] input,
-        [data-baseweb="select"] span {
-             color: #ffffff !important;
-        }
-
-        .st-fs .st-s7 {
-            background-color: #292a2d !important;
-        }
-
-        /* Dropdown options container */
-        .st-b7, .st-ex {
-            background-color: #292a2d !important;
-            scrollbar-color: #e0e0e0 !important;
-        }
-
-        .st-bc {
-            color: #e0e0e0 !important;
-            caret-color: #e0e0e0 !important;
-        }
-
-        .stTextInput input::placeholder {
-            color: #9aa0a6 !important;
-        }
-
-        /* Dropdown cancel all icon */
-        .st-en {
-            color: #e0e0e0 !important;
-        }
-
-        .stTextInput input {
-            background-color: #292a2d !important;
-        }
-           
-        /* Horizontal Line (Dark Mode) */
-        hr {
-            border-color: #d3d3d3 !important; /* Light Gray */
-            opacity: .3;
-        }
-
-        /* Manage preferences button */
-        .st-emotion-cache-12yrha6 {
-            background-color: rgba(151, 166, 195, 0.5);
-        }
-    }
-    
     /* 3. Hide Anchor Links (Chain icons next to headers) */
     a.anchor-link {
         display: none !important;
@@ -287,3 +196,96 @@ st.markdown("""
     Made with ❤️ for Dickinson College Students
 </div>
 """, unsafe_allow_html=True)
+
+_ = """
+/* Dark Mode Overrides */
+@media (prefers-color-scheme: dark) {
+    /* In Dark Mode: Dark Background, Gray Card */
+    .stApp {
+        background-color: #202124;
+    }
+    
+    .stAppToolbar, .stMainMenuPopover, .st-emotion-cache-1v6glgu li, .stMainMenuPopover .st-f7 {
+        background-color: #292a2d !important;
+    }
+
+    .st-emotion-cache-19i1c {
+        border-top: 1px solid #d3d3d3 !important;
+        opacity: 0.3;
+    }
+
+    .block-container {
+        background-color: #292a2d;
+        color: #e0e0e0; /* Light text for readability */
+        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Force text colors for various elements in dark mode to ensure visibility on gray card */
+    h1, h2, h3, h4, h5, h6, p, li, span, div, label {
+        color: #e0e0e0;
+    }
+    
+    /* Specific override for Streamlit input labels if needed, though the above global might catch it */
+    .stTextInput label, .stSelectbox label, .stMultiSelect label {
+        color: #292a2d !important;
+    }
+
+    .stCheckbox span {
+        border: 1px solid #e0e0e0 !important;
+    }
+
+    /* Input Fields & Multiselect (Dark Mode) */
+    /* Using data-baseweb selectors for stability across re-renders */
+    [data-baseweb="input"] > div,
+    [data-baseweb="select"] > div {
+        background-color: #292a2d !important;
+        border-color: #ffffff !important;
+        color: #ffffff !important;
+    }
+
+    /* Ensure the text inside the input/select is visible */
+    [data-baseweb="input"] input,
+    [data-baseweb="select"] span {
+            color: #ffffff !important;
+    }
+
+    .st-fs .st-s7 {
+        background-color: #292a2d !important;
+    }
+
+    /* Dropdown options container */
+    .st-b7, .st-ex {
+        background-color: #292a2d !important;
+        scrollbar-color: #e0e0e0 !important;
+    }
+
+    .st-bc {
+        color: #e0e0e0 !important;
+        caret-color: #e0e0e0 !important;
+    }
+
+    .stTextInput input::placeholder {
+        color: #9aa0a6 !important;
+    }
+
+    /* Dropdown cancel all icon */
+    .st-en {
+        color: #e0e0e0 !important;
+    }
+
+    .stTextInput input {
+        background-color: #292a2d !important;
+    }
+        
+    /* Horizontal Line (Dark Mode) */
+    hr {
+        border-color: #d3d3d3 !important; /* Light Gray */
+        opacity: .3;
+    }
+
+    /* Manage preferences button */
+    .st-emotion-cache-12yrha6 {
+        background-color: rgba(151, 166, 195, 0.5);
+    }
+}
+"""
