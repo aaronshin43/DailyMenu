@@ -16,3 +16,9 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Comment explaining the JSON structure
 COMMENT ON COLUMN users.preferences IS 'JSON structure: {"meals": ["breakfast", "lunch"], "stations": ["main line", "island 3"]}';
+
+-- Create keep_alive table to prevent Supabase project pausing
+CREATE TABLE IF NOT EXISTS keep_alive (
+    id SERIAL PRIMARY KEY,
+    last_run TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);

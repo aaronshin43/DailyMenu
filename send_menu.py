@@ -94,5 +94,14 @@ def main():
         logging.info(f"Sending email to {email} with {len(filtered_items)} items...")
         send_email(email, subject, html_body)
 
+    # 5. Send Heartbeat (Keep-Alive)
+    try:
+        logging.info("Sending heartbeat to keep_alive table...")
+        # Upsert a row with id=1, updating the last_run timestamp
+        supabase.table("keep_alive").upsert({"id": 1, "last_run": datetime.datetime.now(datetime.timezone.utc).isoformat()}).execute()
+        logging.info("Heartbeat sent successfully.")
+    except Exception as e:
+        logging.error(f"Failed to send heartbeat: {e}")
+
 if __name__ == "__main__":
     main()
