@@ -36,34 +36,7 @@ def main():
     parser.add_argument("--email", type=str, help="Send to a specific email address only")
     args = parser.parse_args()
 
-    # 0. Send Heartbeat (Keep-Alive)
-    try:
-        logging.info("Sending heartbeat to keep_alive table...")
-        # Upsert a row with id=1, updating the last_run timestamp
-        supabase.table("keep_alive").upsert({"id": 1, "last_run": datetime.datetime.now(datetime.timezone.utc).isoformat()}).execute()
-        logging.info("Heartbeat sent successfully.")
-    except Exception as e:
-        logging.error(f"Failed to send heartbeat: {e}")
-
-    # 1. Setup Date
-    if args.date:
-        today = datetime.datetime.strptime(args.date, "%Y-%m-%d").date()
-    else:
-        today = datetime.date.today()
-
-    logging.info(f"Fetching menu for {today}...")
-
-    # 2. Fetch Menu Data
-    raw_data = fetch_menu_data(today)
-    all_menu_items = parse_menu(raw_data, target_date=today)
-    
-    if not all_menu_items:
-        logging.warning("No menu items found for today. Exiting.")
-        return
-
-    logging.info(f"Found {len(all_menu_items)} total menu items.")
-
-    # 3. Setup Supabase
+    # 0. Setup Supabase
     SUPABASE_URL = os.getenv("SUPABASE_URL")
     SUPABASE_KEY = os.getenv("SUPABASE_KEY")
     
@@ -72,6 +45,33 @@ def main():
         return
 
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    # 1. Send Heartbeat (Keep-Alive)
+    try:
+        logging.info("Sending heartbeat to keep_alive table...")
+        # Upsert a row with id=1, updating the last_run timestamp
+        supabase.table("keep_alive").upsert({"id": 1, "last_run": datetime.datetime.now(datetime.timezone.utc).isoformat()}).execute()
+        logging.info("Heartbeat sent successfully.")
+    except Exception as e:
+        logging.error(f"Failed to send heartbeat: {e}")
+
+    # 2. Setup Date
+    if args.date:
+        today = datetime.datetime.strptime(args.date, "%Y-%m-%d").date()
+    else:
+        today = datetime.date.today()
+
+    logging.info(f"Fetching menu for {today}...")
+
+    # 3. Fetch Menu Data
+    raw_data = fetch_menu_data(today)
+    all_menu_items = parse_menu(raw_data, target_date=today)
+    
+    if not all_menu_items:
+        logging.warning("No menu items found for today. Exiting.")
+        return
+
+    logging.info(f"Found {len(all_menu_items)} total menu items.")
 
     # 4. Process Users
     users = get_users(supabase, args.email)
