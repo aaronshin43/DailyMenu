@@ -2,9 +2,9 @@ name: Daily Menu Notification
 
 on:
   schedule:
-    # Runs at 12:00 UTC, which is 7:00 AM EST (Standard Time) or 8:00 AM EDT.
-    # To strictly hit 7:00 AM EST (UTC-5), we use 12:00 UTC.
-    - cron: '0 12 * * *'
+    # Runs at 11:00 UTC, which is 6:00 AM EST (Standard Time) or 7:00 AM EDT (Summer Time).
+    # To strictly hit 7:00 AM EDT (UTC-4) during Summer Time, we use 11:00 UTC.
+    - cron: '0 11 * * *'
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
@@ -13,10 +13,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
