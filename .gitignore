@@ -30,6 +30,13 @@ __pycache__/
 
 # Ignore environment variables
 .env
+.env.local
+
+# Ignore Next.js app artifacts
+web/node_modules/
+web/.next/
+web/.env.local
+web/.vercel/
 
 # OS metadata
 .DS_Store

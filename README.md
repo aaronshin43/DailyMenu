@@ -1,115 +1,203 @@
 # Dickinson Dining Daily
 
-An automated service that delivers the daily Dickinson College cafeteria menu to your inbox. Users can subscribe and filter their preferences (e.g., only "Main line" or "Island 3", only "Dinner") via a web interface.
+Dickinson Dining Daily sends the Dickinson College cafeteria menu to subscribers by email each morning. Users subscribe and manage meal/station preferences through a web frontend, while a scheduled backend job fetches the menu, filters it per user, and sends emails.
 
-## Project Architecture
+## Current Architecture
 
-- **Frontend**: Streamlit (`app.py`) for user subscription and preference management.
-- **Backend Service**: Python script (`send_menu.py`) that fetches data, filters per user, and sends emails.
-- **Data Source**: Nutrislice API (via `utils.py`).
-- **Database**: Supabase (PostgreSQL) for storing user emails and preferences.
-- **Automation**: GitHub Actions runs the backend script daily at 7:00 AM EST.
+- Frontend: Next.js app in [web/](/D:/03_Coding/dailymenu/web)
+- Legacy frontend: Streamlit app in [app.py](/D:/03_Coding/dailymenu/app.py), kept temporarily during migration
+- Backend sender: [send_menu.py](/D:/03_Coding/dailymenu/send_menu.py)
+- Shared Python services: [services/](/D:/03_Coding/dailymenu/services)
+- Database: Supabase
+- Scheduler: GitHub Actions workflow in [.github/workflows/daily_menu.yml](/D:/03_Coding/dailymenu/.github/workflows/daily_menu.yml)
 
-## Setup Instructions
+## User Flows
 
-### 1. Prerequisites
+- Subscribe: enter email and preferences, then confirm by email link
+- Manage preferences: existing active users receive a secure manage link by email
+- Confirm: token-based link sets `is_active=true`
+- Unsubscribe: token-based link sets `is_active=false`
+- Daily send: GitHub Actions runs `send_menu.py`, fetches the menu, filters by preferences, and sends email
+
+## Tech Split
+
+### Next.js frontend
+
+Location: [web/](/D:/03_Coding/dailymenu/web)
+
+- Public pages:
+  - `/`
+  - `/manage?token=...`
+  - `/confirm?token=...`
+  - `/unsubscribe?token=...`
+- Server routes:
+  - `POST /api/subscribe`
+  - `GET /api/preferences`
+  - `POST /api/preferences`
+  - `POST /api/confirm`
+  - `POST /api/unsubscribe`
+
+### Python backend
+
+- [send_menu.py](/D:/03_Coding/dailymenu/send_menu.py): daily send job
+- [services/utils.py](/D:/03_Coding/dailymenu/services/utils.py): Nutrislice fetch and filtering
+- [services/email_sender.py](/D:/03_Coding/dailymenu/services/email_sender.py): SMTP sending
+- [services/email_templates.py](/D:/03_Coding/dailymenu/services/email_templates.py): HTML email generation and frontend link URLs
+
+## Prerequisites
 
 - Python 3.10+
-- A Supabase account and project.
-- A generic SMTP email account (e.g., Gmail with App Password) or SendGrid/resend API key.
+- Node.js 20+ and npm
+- A Supabase project
+- SMTP credentials for sending email
 
-### 2. Installation
+## Database Setup
 
-1. Clone the repository.
-2. Create a virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Run [database/schema.sql](/D:/03_Coding/dailymenu/database/schema.sql) in Supabase SQL Editor.
 
-### 3. Database Setup (Supabase)
+This creates:
 
-1. Go to your Supabase project's **SQL Editor**.
-2. Run the SQL from `schema.sql` to create the `users` table.
+- `users`
+- `keep_alive`
 
-### 4. Local Development
+## Local Development
 
-#### Frontend (Streamlit)
-To run the subscription page locally:
-1. Copy the secrets template: `cp .streamlit/secrets_template.toml .streamlit/secrets.toml` (or rename it).
-2. Fill in your `url` and `key` from Supabase Project Settings -> API.
-3. Run the app:
-   ```bash
-   streamlit run app.py
-   ```
+### 1. Python backend
 
-#### Backend (Email Script)
-To test sending emails:
-1. Set the following environment variables (in your terminal or `.env` file):
-   - `SUPABASE_URL`
-   - `SUPABASE_KEY`
-   - `SMTP_EMAIL`
-   - `SMTP_PASSWORD`
-   - `SMTP_SERVER` (default: smtp.gmail.com)
-   - `SMTP_PORT` (default: 587)
-2. Run the script:
-   ```bash
-   python send_menu.py
-   ```
+Install Python dependencies:
 
-## Deployment Instructions
+```bash
+pip install -r requirements.txt
+```
 
-### Part 1: Backend Automation (GitHub Actions)
-This handles the daily email sending.
+Create `.env` in the repo root or export these env vars:
 
-1. **Push to GitHub**:
-   - Create a new repository on GitHub.
-   - Push your code:
-     ```bash
-     git init
-     git add .
-     git commit -m "Initial commit"
-     git branch -M main
-     git remote add origin <YOUR_REPO_URL>
-     git push -u origin main
-     ```
+- `SUPABASE_URL`
+- `SUPABASE_KEY`
+- `SMTP_EMAIL`
+- `SMTP_PASSWORD`
+- `SMTP_SERVER`
+- `SMTP_PORT`
+- `SITE_URL`
 
-2. **Configure Secrets**:
-   - Go to your GitHub Repository -> **Settings** -> **Secrets and variables** -> **Actions**.
-   - Click **New repository secret** and add the following:
-     - `SUPABASE_URL`
-     - `SUPABASE_KEY`
-     - `SMTP_EMAIL`
-     - `SMTP_PASSWORD`
-     - `SMTP_SERVER` (default: `smtp.gmail.com`)
-     - `SMTP_PORT` (default: `587`)
+Run the sender:
 
-3. **Verify**:
-   - Go to the **Actions** tab in GitHub.
-   - Select "Daily Menu Notification" on the left.
-   - Click **Run workflow** -> **Run workflow** to test it immediately.
-   - Afterward, it will run automatically every day at 7:00 AM EST.
+```bash
+python send_menu.py
+```
 
-### Part 2: Frontend Hosting (Streamlit Cloud)
-This makes the subscription page accessible to everyone.
+Useful targeted runs:
 
-1. **Sign up/Login**: Go to [share.streamlit.io](https://share.streamlit.io/).
-2. **New App**: Click **New app** -> Select your GitHub repository used above.
-3. **Settings**:
-   - Main file path: `app.py`
-4. **Advanced Settings (Secrets)**:
-   - Click **Advanced settings** (or the "Manage app" menu after deploying -> Settings -> Secrets).
-   - Paste the contents of your `.streamlit/secrets.toml` file here:
-     ```toml
-     [supabase]
-     url = "YOUR_SUPABASE_URL"
-     key = "YOUR_SUPABASE_KEY"
-     ```
-5. **Deploy**: Click **Deploy**. Your app is now live!
+```bash
+python send_menu.py --date 2026-04-11
+python send_menu.py --email student@dickinson.edu
+python services/utils.py
+```
 
-## Todo
-- [ ] fix dark mode bug (unsubscribe page -> manage preferences(/?email=example%40gmail.com&action=) -> breaks some styling)
+### 2. Next.js frontend
+
+Install frontend dependencies:
+
+```bash
+cd web
+npm install
+```
+
+Create `web/.env.local` from [web/.env.example](/D:/03_Coding/dailymenu/web/.env.example):
+
+```env
+SITE_URL=http://localhost:3000
+SUPABASE_URL=YOUR_SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
+SMTP_EMAIL=YOUR_SMTP_EMAIL
+SMTP_PASSWORD=YOUR_SMTP_PASSWORD
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+```
+
+Run the frontend:
+
+```bash
+cd web
+npm run dev
+```
+
+Production validation:
+
+```bash
+cd web
+npm run lint
+npm run build
+```
+
+### 3. Legacy Streamlit frontend
+
+The old Streamlit app is still present during migration:
+
+```bash
+streamlit run app.py
+```
+
+It should be treated as legacy and removed after the Next.js cutover is complete.
+
+## Deployment
+
+### Vercel frontend
+
+Deploy [web/](/D:/03_Coding/dailymenu/web) to Vercel.
+
+Recommended setup:
+
+- Framework: Next.js
+- Root directory: `web`
+- Production env vars:
+  - `SITE_URL`
+  - `SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `SMTP_EMAIL`
+  - `SMTP_PASSWORD`
+  - `SMTP_SERVER`
+  - `SMTP_PORT`
+
+After deployment, set `SITE_URL` to the public Vercel domain or your custom domain.
+
+### GitHub Actions backend
+
+The daily sender remains in GitHub Actions.
+
+Repository secrets needed:
+
+- `SITE_URL`
+- `SUPABASE_URL`
+- `SUPABASE_KEY`
+- `SMTP_EMAIL`
+- `SMTP_PASSWORD`
+- `SMTP_SERVER`
+- `SMTP_PORT`
+
+The `SITE_URL` secret is used by [services/email_templates.py](/D:/03_Coding/dailymenu/services/email_templates.py) so links in daily emails point to the new frontend.
+
+## Migration Status
+
+Implemented:
+
+- Next.js app scaffold in `web/`
+- token-based pages and API routes
+- server-side Supabase access for frontend actions
+- SMTP email sending from Next.js server routes
+- configurable `SITE_URL` for Python email templates and GitHub Actions
+
+Not yet migrated:
+
+- immediate "send today's menu right after confirm" behavior from Streamlit
+- full removal of Streamlit-specific code and docs
+- production cutover to Vercel
+
+## Recommended Cutover Order
+
+1. Configure `web/.env.local` and test the Next.js app locally.
+2. Deploy `web/` to Vercel.
+3. Set the production `SITE_URL` in Vercel and GitHub Actions.
+4. Run end-to-end tests with a real email address.
+5. Switch public traffic to the Next.js frontend.
+6. Remove Streamlit deployment after a safe verification window.

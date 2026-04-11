@@ -1,0 +1,245 @@
+:root {
+  --background: #f3efe7;
+  --surface: #fffdf9;
+  --surface-strong: #fff8ef;
+  --text: #1f1a17;
+  --muted: #665e58;
+  --border: #e7d8c8;
+  --accent: #8e1f2f;
+  --accent-soft: #f6dfe3;
+  --accent-strong: #6f1523;
+  --success: #166534;
+  --shadow: 0 16px 40px rgba(78, 48, 24, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(255, 220, 180, 0.45), transparent 28%),
+    radial-gradient(circle at top right, rgba(155, 32, 48, 0.08), transparent 25%),
+    linear-gradient(180deg, #f7f1e7 0%, #efe5d8 100%);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+a {
+  color: inherit;
+}
+
+.page-shell {
+  min-height: 100vh;
+  padding: 40px 20px 72px;
+}
+
+.page-card {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  background: linear-gradient(180deg, var(--surface) 0%, #fffaf4 100%);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.page-header {
+  padding: 28px 28px 16px;
+  border-bottom: 1px solid rgba(142, 31, 47, 0.1);
+  background:
+    linear-gradient(135deg, rgba(142, 31, 47, 0.07), rgba(255, 255, 255, 0)),
+    linear-gradient(180deg, #fffaf4 0%, #fff6ee 100%);
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-mark {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: rgba(142, 31, 47, 0.08);
+  display: grid;
+  place-items: center;
+}
+
+.brand-copy h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 0.95;
+}
+
+.brand-copy p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  max-width: 48ch;
+}
+
+.page-content {
+  padding: 28px;
+}
+
+.section-title {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+}
+
+.section-copy {
+  margin: 0 0 20px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.form-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.field-group {
+  display: grid;
+  gap: 10px;
+}
+
+.field-group label,
+.label-text {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.input,
+.checkbox-panel,
+.message-box {
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  border-radius: 18px;
+}
+
+.input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.input:focus {
+  outline: 2px solid rgba(142, 31, 47, 0.18);
+  border-color: var(--accent);
+}
+
+.split-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.checkbox-panel {
+  padding: 16px;
+}
+
+.checkbox-list {
+  display: grid;
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-item input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.button-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-size: 0.98rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: #fff9f4;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.message-box {
+  padding: 14px 16px;
+  line-height: 1.5;
+}
+
+.message-box.error {
+  color: #7f1d1d;
+  border-color: #efc4c4;
+  background: #fef2f2;
+}
+
+.message-box.success {
+  color: var(--success);
+  border-color: #bfdbc8;
+  background: #f0fdf4;
+}
+
+.message-box.info {
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.footer-note {
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .page-shell {
+    padding: 16px 12px 40px;
+  }
+
+  .page-header,
+  .page-content {
+    padding: 22px 18px;
+  }
+
+  .brand-row {
+    align-items: flex-start;
+  }
+
+  .split-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .button-row {
+    flex-direction: column;
+  }
+
+  .button {
+    width: 100%;
+  }
+}

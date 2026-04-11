@@ -1,9 +1,15 @@
+import os
+
+
+def _get_base_url():
+    return (os.getenv("SITE_URL") or "https://dson-dailymenu.streamlit.app").rstrip("/")
+
+
 def generate_confirmation_email(user_email, token):
     """
     Generates a confirmation email with a link to activate the subscription.
     """
-    BASE_URL = "https://dson-dailymenu.streamlit.app"
-    confirm_url = f"{BASE_URL}/?token={token}&action=confirm"
+    confirm_url = f"{_get_base_url()}/confirm?token={token}"
     
     html = f"""
     <html>
@@ -27,8 +33,7 @@ def generate_manage_link_email(user_email, token):
     """
     Generates an email with a link to manage preferences for existing users.
     """
-    BASE_URL = "https://dson-dailymenu.streamlit.app"
-    manage_url = f"{BASE_URL}/?token={token}"
+    manage_url = f"{_get_base_url()}/manage?token={token}"
     
     html = f"""
     <html>
@@ -54,12 +59,12 @@ def generate_html_email(menu_items, date_str, token):
     menu_items: List of dicts [{'meal': ..., 'station': ..., 'name': ..., 'description': ...}]
     token: The user's unique UUID token for generating secure personal links.
     """
-    # Base URL for the Streamlit app
-    BASE_URL = "https://dson-dailymenu.streamlit.app"
-    
+    # Base URL for the public frontend
+    BASE_URL = _get_base_url()
+
     # Generate Links using TOKEN instead of email
-    manage_url = f"{BASE_URL}/?token={token}"
-    unsubscribe_url = f"{BASE_URL}/?token={token}&action=unsubscribe"
+    manage_url = f"{BASE_URL}/manage?token={token}"
+    unsubscribe_url = f"{BASE_URL}/unsubscribe?token={token}"
 
     # Station Colors (Pastel Palette for eye comfort)
     STATION_COLORS = {

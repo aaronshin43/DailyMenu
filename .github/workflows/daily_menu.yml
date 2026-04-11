@@ -27,6 +27,7 @@ jobs:
 
       - name: Run Send Menu Script
         env:
+          SITE_URL: ${{ secrets.SITE_URL }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
