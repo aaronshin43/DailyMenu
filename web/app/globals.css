@@ -242,6 +242,12 @@ a {
   border-color: transparent;
 }
 
+.button-reset {
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+}
+
 .menu-date-card {
   border: 1px solid var(--border);
   background: #fffdf8;
@@ -270,6 +276,7 @@ a {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 12px;
 }
 
 .menu-item-card {
@@ -279,21 +286,44 @@ a {
   padding: 14px;
 }
 
-.menu-item-station {
-  display: inline-block;
-  margin-bottom: 10px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
 .menu-item-name {
   font-size: 1rem;
   line-height: 1.4;
   font-weight: 700;
+}
+
+.menu-station-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.menu-station-details {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: #fffaf3;
+  padding: 0 14px 14px;
+}
+
+.menu-station-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 0;
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+.menu-station-summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu-station-count {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 @media (max-width: 720px) {

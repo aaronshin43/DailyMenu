@@ -34,15 +34,17 @@ def _sort_cards(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     )
 
 
-def _group_items_for_digest(menu_items: List[Dict[str, Any]]) -> Dict[str, Dict[str, List[Dict[str, Any]]]]:
-    grouped: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
+def _group_items_for_digest(menu_items: List[Dict[str, Any]]) -> Dict[str, Dict[str, Dict[str, List[Dict[str, Any]]]]]:
+    grouped: Dict[str, Dict[str, Dict[str, List[Dict[str, Any]]]]] = {}
 
     for item in _sort_cards(menu_items):
         date_key = item.get("date") or "unknown-date"
         meal_key = item.get("meal", "other").capitalize()
+        station_key = item.get("station", "General")
         grouped.setdefault(date_key, {})
-        grouped[date_key].setdefault(meal_key, [])
-        grouped[date_key][meal_key].append(item)
+        grouped[date_key].setdefault(meal_key, {})
+        grouped[date_key][meal_key].setdefault(station_key, [])
+        grouped[date_key][meal_key][station_key].append(item)
 
     return grouped
 
@@ -58,14 +60,7 @@ def _build_card_table(items: List[Dict[str, Any]]) -> str:
                 <td valign="top" width="33.33%" style="padding: 6px;">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #eddac7; border-radius: 16px; background: #fffaf3;">
                         <tr>
-                            <td style="padding: 14px 14px 8px;">
-                                <div style="display: inline-block; padding: 4px 8px; border-radius: 999px; background: #f6dfe3; color: #8e1f2f; font-size: 12px; font-weight: 700; letter-spacing: 0.02em;">
-                                    {item["station"]}
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 0 14px 14px; font-size: 16px; line-height: 1.35; color: #231815; font-weight: 700;">
+                            <td style="padding: 14px; font-size: 16px; line-height: 1.35; color: #231815; font-weight: 700;">
                                 {item["name"]}
                             </td>
                         </tr>
@@ -80,6 +75,39 @@ def _build_card_table(items: List[Dict[str, Any]]) -> str:
         rows_html.append(f"<tr>{''.join(cells)}</tr>")
 
     return f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{"".join(rows_html)}</table>'
+
+
+def _build_station_sections(stations: Dict[str, List[Dict[str, Any]]]) -> str:
+    sections = []
+    sorted_stations = sorted(
+        stations.keys(),
+        key=lambda station: (
+            STATION_ORDER.get(station.lower(), 999),
+            station.lower(),
+        ),
+    )
+
+    for station in sorted_stations:
+        sections.append(
+            f"""
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 12px; border: 1px solid #efdfcc; border-radius: 18px; background: #fffaf4;">
+                <tr>
+                    <td style="padding: 14px 16px 8px;">
+                        <div style="display: inline-block; padding: 6px 10px; border-radius: 999px; background: #f6dfe3; color: #8e1f2f; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;">
+                            {station}
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 0 10px 10px;">
+                        {_build_card_table(stations[station])}
+                    </td>
+                </tr>
+            </table>
+            """
+        )
+
+    return "".join(sections)
 
 
 def generate_confirmation_email(user_email, token):
@@ -139,7 +167,7 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
     base_url = _get_base_url()
     manage_url = f"{base_url}/manage?token={token}"
     unsubscribe_url = f"{base_url}/unsubscribe?token={token}"
-    full_menu_url = f"{base_url}/menu?start={start_date.isoformat()}&days={days_ahead}"
+    full_menu_url = f"{base_url}/menu?date={start_date.isoformat()}"
     grouped = _group_items_for_digest(menu_items)
     end_date = start_date + datetime.timedelta(days=days_ahead - 1)
 
@@ -150,7 +178,7 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
     else:
         header_copy = f"{_format_short_date(start_date)} to {_format_short_date(end_date)}"
         intro_copy = "Your selected meals and stations for the next two days."
-        full_menu_label = "View full 2-day menu"
+        full_menu_label = "Open full menu page"
 
     date_sections = []
     meal_order = ["Breakfast", "Lunch", "Dinner"]
@@ -159,8 +187,10 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
         try:
             parsed_date = datetime.date.fromisoformat(date_key)
             date_label = _format_long_date(parsed_date)
+            date_menu_url = f"{base_url}/menu?date={parsed_date.isoformat()}"
         except ValueError:
             date_label = date_key
+            date_menu_url = full_menu_url
 
         meal_sections = []
         for meal in meal_order:
@@ -172,7 +202,7 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
                 <tr>
                     <td style="padding: 0 22px 18px;">
                         <div style="font-size: 20px; font-weight: 700; color: #8e1f2f; margin-bottom: 10px;">{meal}</div>
-                        {_build_card_table(meals[meal])}
+                        {_build_station_sections(meals[meal])}
                     </td>
                 </tr>
                 """
@@ -185,6 +215,9 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
                     <tr>
                         <td style="padding: 20px 22px 12px;">
                             <div style="font-size: 24px; line-height: 1.2; color: #201815; font-weight: 700;">{date_label}</div>
+                            <div style="margin-top: 10px;">
+                                <a href="{date_menu_url}" style="display: inline-block; color: #8e1f2f; text-decoration: none; font-weight: 700;">Open full menu for this date</a>
+                            </div>
                         </td>
                     </tr>
                     {''.join(meal_sections)}

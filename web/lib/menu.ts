@@ -19,13 +19,15 @@ type NutrisliceResponse = {
   days?: NutrisliceDay[];
 };
 
-export type GroupedMenuByDate = Array<{
-  date: string;
-  meals: Array<{
-    meal: Meal;
-    items: MenuItem[];
-  }>;
-}>;
+export type GroupedStationMenu = {
+  station: string;
+  items: MenuItem[];
+};
+
+export type GroupedMealMenu = {
+  meal: Meal;
+  stations: GroupedStationMenu[];
+};
 
 function formatPart(value: number): string {
   return String(value).padStart(2, "0");
@@ -45,8 +47,7 @@ function toIsoDate(date: Date): string {
 
 function sortMenuItems(items: MenuItem[]): MenuItem[] {
   return [...items].sort((left, right) => {
-    const mealCompare =
-      MEALS.indexOf(left.meal) - MEALS.indexOf(right.meal);
+    const mealCompare = MEALS.indexOf(left.meal) - MEALS.indexOf(right.meal);
     if (mealCompare !== 0) {
       return mealCompare;
     }
@@ -123,35 +124,44 @@ export async function fetchMenuForDate(date: Date): Promise<MenuItem[]> {
   return sortMenuItems(parsedItems);
 }
 
-export async function fetchMenuRange(
-  startDate: Date,
-  days: 1 | 2,
-): Promise<GroupedMenuByDate> {
-  const dates = Array.from({ length: days }, (_, index) => {
-    const nextDate = new Date(startDate);
-    nextDate.setDate(startDate.getDate() + index);
-    return nextDate;
-  });
+export async function fetchGroupedMenuForDate(
+  date: Date,
+): Promise<GroupedMealMenu[]> {
+  const items = await fetchMenuForDate(date);
 
-  const results = await Promise.all(
-    dates.map(async (date) => {
-      const items = await fetchMenuForDate(date);
-      const mealGroups = MEALS.map((meal) => ({
-        meal,
-        items: items.filter((item) => item.meal === meal),
-      })).filter((group) => group.items.length > 0);
+  return MEALS.map((meal) => {
+    const mealItems = items.filter((item) => item.meal === meal);
+    const stationMap = new Map<string, MenuItem[]>();
 
-      return {
-        date: toIsoDate(date),
-        meals: mealGroups,
-      };
-    }),
-  );
+    for (const item of mealItems) {
+      if (!stationMap.has(item.station)) {
+        stationMap.set(item.station, []);
+      }
+      stationMap.get(item.station)?.push(item);
+    }
 
-  return results.filter((group) => group.meals.length > 0);
+    const stations = [...stationMap.entries()]
+      .sort((left, right) => {
+        const leftOrder = STATION_ORDER[left[0].toLowerCase()] ?? 999;
+        const rightOrder = STATION_ORDER[right[0].toLowerCase()] ?? 999;
+        if (leftOrder !== rightOrder) {
+          return leftOrder - rightOrder;
+        }
+        return left[0].localeCompare(right[0]);
+      })
+      .map(([station, stationItems]) => ({
+        station,
+        items: stationItems.sort((left, right) => left.name.localeCompare(right.name)),
+      }));
+
+    return {
+      meal,
+      stations,
+    };
+  }).filter((mealGroup) => mealGroup.stations.length > 0);
 }
 
-export function parseStartDate(value?: string): Date {
+export function parseMenuDate(value?: string): Date {
   if (!value) {
     return new Date();
   }
@@ -162,8 +172,4 @@ export function parseStartDate(value?: string): Date {
   }
 
   return parsedDate;
-}
-
-export function parseDays(value?: string): 1 | 2 {
-  return value === "2" ? 2 : 1;
 }
