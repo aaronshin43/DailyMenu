@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-from services.utils import fetch_menu_data, parse_menu, filter_menu_for_user
+from services.utils import fetch_menu_data, parse_menu, filter_menu_for_user, sort_menu_items
 from services.email_templates import generate_html_email
 from services.email_sender import send_email
 
@@ -29,6 +29,14 @@ def get_users(supabase: Client, target_email: str = None):
         
     response = query.execute()
     return response.data
+
+def get_days_ahead(preferences: Dict[str, Any]) -> int:
+    try:
+        days_ahead = int(preferences.get("days_ahead", 1))
+    except (TypeError, ValueError):
+        days_ahead = 1
+
+    return max(1, min(days_ahead, 2))
 
 def main():
     parser = argparse.ArgumentParser(description="Send daily menu emails.")
@@ -61,46 +69,66 @@ def main():
     else:
         today = datetime.date.today()
 
-    logging.info(f"Fetching menu for {today}...")
-
-    # 3. Fetch Menu Data
-    raw_data = fetch_menu_data(today)
-    all_menu_items = parse_menu(raw_data, target_date=today)
-    
-    if not all_menu_items:
-        logging.warning("No menu items found for today. Exiting.")
-        return
-
-    logging.info(f"Found {len(all_menu_items)} total menu items.")
-
-    # 4. Process Users
+    # 3. Process Users
     users = get_users(supabase, args.email)
     
     if not users:
         logging.info("No active users found.")
         return
 
+    max_days_ahead = max(get_days_ahead(user.get("preferences", {})) for user in users)
+    target_dates = [today + datetime.timedelta(days=offset) for offset in range(max_days_ahead)]
+    menu_by_date: Dict[datetime.date, List[Dict[str, Any]]] = {}
+
+    for target_date in target_dates:
+        logging.info(f"Fetching menu for {target_date}...")
+        raw_data = fetch_menu_data(target_date)
+        parsed_items = parse_menu(raw_data, target_date=target_date)
+        menu_by_date[target_date] = sort_menu_items(parsed_items)
+        logging.info(
+            "Found %s total menu items for %s.",
+            len(menu_by_date[target_date]),
+            target_date,
+        )
+
     for user in users:
         email = user["email"]
         token = user.get("token")
         prefs = user.get("preferences", {})
+        days_ahead = get_days_ahead(prefs)
         
         if not token:
              logging.warning(f"User {email} missing token. Skipping.")
              continue
 
-        # Use shared helper for filtering
-        filtered_items = filter_menu_for_user(all_menu_items, prefs)
+        filtered_items: List[Dict[str, Any]] = []
+        for offset in range(days_ahead):
+            target_date = today + datetime.timedelta(days=offset)
+            filtered_items.extend(filter_menu_for_user(menu_by_date.get(target_date, []), prefs))
+        filtered_items = sort_menu_items(filtered_items)
             
         if not filtered_items:
-            logging.info(f"Skipping {email}: No items match preferences.")
+            logging.info(
+                "Skipping %s: No items match preferences across %s day(s).",
+                email,
+                days_ahead,
+            )
             continue
             
         # 4. Generate & Send
-        html_body = generate_html_email(filtered_items, today.strftime("%A, %B %d, %Y"), token)
-        subject = f"Dickinson Daily Menu - {today.strftime('%b %d')}"
+        html_body = generate_html_email(filtered_items, token, today, days_ahead)
+        if days_ahead == 1:
+            subject = f"Dickinson Daily Menu - {today.strftime('%b %d')}"
+        else:
+            end_date = today + datetime.timedelta(days=days_ahead - 1)
+            subject = f"Dickinson Daily Menu - {today.strftime('%b %d')} to {end_date.strftime('%b %d')}"
         
-        logging.info(f"Sending email to {email} with {len(filtered_items)} items...")
+        logging.info(
+            "Sending email to %s with %s items across %s day(s)...",
+            email,
+            len(filtered_items),
+            days_ahead,
+        )
         send_email(email, subject, html_body)
 
 if __name__ == "__main__":

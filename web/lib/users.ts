@@ -11,11 +11,24 @@ type SupabaseUserRow = {
 };
 
 function coerceUserRecord(row: SupabaseUserRow): UserRecord {
+  const preferences = row.preferences ?? {
+    meals: [],
+    stations: [],
+    days_ahead: 1 as const,
+  };
+
   return {
     email: row.email,
     token: row.token,
     is_active: row.is_active,
-    preferences: row.preferences,
+    preferences: {
+      meals: preferences.meals ?? [],
+      stations: preferences.stations ?? [],
+      days_ahead:
+        preferences.days_ahead === 2 || preferences.days_ahead === 1
+          ? preferences.days_ahead
+          : 1,
+    },
   };
 }
 

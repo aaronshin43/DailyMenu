@@ -1,8 +1,85 @@
+import datetime
 import os
+from typing import Dict, List, Any
+
+from services.utils import MEAL_TYPES, STATION_ORDER
 
 
 def _get_base_url():
     return (os.getenv("SITE_URL") or "http://localhost:3000").rstrip("/")
+
+
+def _format_long_date(date_value: datetime.date) -> str:
+    return date_value.strftime("%A, %B %d, %Y")
+
+
+def _format_short_date(date_value: datetime.date) -> str:
+    return date_value.strftime("%b %d")
+
+
+def _chunk_list(items: List[Dict[str, Any]], size: int) -> List[List[Dict[str, Any]]]:
+    return [items[index:index + size] for index in range(0, len(items), size)]
+
+
+def _sort_cards(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return sorted(
+        items,
+        key=lambda item: (
+            item.get("date", ""),
+            MEAL_TYPES.index(item["meal"]) if item.get("meal") in MEAL_TYPES else 99,
+            STATION_ORDER.get(item.get("station", "").lower(), 999),
+            item.get("station", "").lower(),
+            item.get("name", "").lower(),
+        ),
+    )
+
+
+def _group_items_for_digest(menu_items: List[Dict[str, Any]]) -> Dict[str, Dict[str, List[Dict[str, Any]]]]:
+    grouped: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
+
+    for item in _sort_cards(menu_items):
+        date_key = item.get("date") or "unknown-date"
+        meal_key = item.get("meal", "other").capitalize()
+        grouped.setdefault(date_key, {})
+        grouped[date_key].setdefault(meal_key, [])
+        grouped[date_key][meal_key].append(item)
+
+    return grouped
+
+
+def _build_card_table(items: List[Dict[str, Any]]) -> str:
+    rows_html = []
+
+    for row in _chunk_list(items, 3):
+        cells = []
+        for item in row:
+            cells.append(
+                f"""
+                <td valign="top" width="33.33%" style="padding: 6px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #eddac7; border-radius: 16px; background: #fffaf3;">
+                        <tr>
+                            <td style="padding: 14px 14px 8px;">
+                                <div style="display: inline-block; padding: 4px 8px; border-radius: 999px; background: #f6dfe3; color: #8e1f2f; font-size: 12px; font-weight: 700; letter-spacing: 0.02em;">
+                                    {item["station"]}
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0 14px 14px; font-size: 16px; line-height: 1.35; color: #231815; font-weight: 700;">
+                                {item["name"]}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                """
+            )
+
+        while len(cells) < 3:
+            cells.append('<td valign="top" width="33.33%" style="padding: 6px;"></td>')
+
+        rows_html.append(f"<tr>{''.join(cells)}</tr>")
+
+    return f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{"".join(rows_html)}</table>'
 
 
 def generate_confirmation_email(user_email, token):
@@ -10,7 +87,7 @@ def generate_confirmation_email(user_email, token):
     Generates a confirmation email with a link to activate the subscription.
     """
     confirm_url = f"{_get_base_url()}/confirm?token={token}"
-    
+
     html = f"""
     <html>
     <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6;">
@@ -29,12 +106,13 @@ def generate_confirmation_email(user_email, token):
     """
     return html
 
+
 def generate_manage_link_email(user_email, token):
     """
     Generates an email with a link to manage preferences for existing users.
     """
     manage_url = f"{_get_base_url()}/manage?token={token}"
-    
+
     html = f"""
     <html>
     <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6;">
@@ -53,110 +131,118 @@ def generate_manage_link_email(user_email, token):
     """
     return html
 
-def generate_html_email(menu_items, date_str, token):
+
+def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date: datetime.date, days_ahead: int):
     """
-    Generates a clean HTML email body from the filtered menu items.
-    menu_items: List of dicts [{'meal': ..., 'station': ..., 'name': ..., 'description': ...}]
-    token: The user's unique UUID token for generating secure personal links.
+    Generates an HTML email body for a 1-2 day filtered digest.
     """
-    # Base URL for the public frontend
-    BASE_URL = _get_base_url()
+    base_url = _get_base_url()
+    manage_url = f"{base_url}/manage?token={token}"
+    unsubscribe_url = f"{base_url}/unsubscribe?token={token}"
+    full_menu_url = f"{base_url}/menu?start={start_date.isoformat()}&days={days_ahead}"
+    grouped = _group_items_for_digest(menu_items)
+    end_date = start_date + datetime.timedelta(days=days_ahead - 1)
 
-    # Generate Links using TOKEN instead of email
-    manage_url = f"{BASE_URL}/manage?token={token}"
-    unsubscribe_url = f"{BASE_URL}/unsubscribe?token={token}"
+    if days_ahead == 1:
+        header_copy = _format_long_date(start_date)
+        intro_copy = "Your selected meals and stations for today."
+        full_menu_label = "View full menu"
+    else:
+        header_copy = f"{_format_short_date(start_date)} to {_format_short_date(end_date)}"
+        intro_copy = "Your selected meals and stations for the next two days."
+        full_menu_label = "View full 2-day menu"
 
-    # Station Colors (Pastel Palette for eye comfort)
-    STATION_COLORS = {
-        "Grill": "#FFF3E0",          # Soft Orange
-        "Pizza": "#FBE9E7",          # Mist
-        "Pasta Bar": "#FFF8E1",      # Pale Yellow
-        "Salad Bar": "#E8F5E9",      # Mint Green
-        "Special Salad Bar": "#F1F8E9", # Light Lime
-        "Fruit Bar": "#F9FBE7",      # Lime Mist
-        "Deli": "#EFEBE9",           # Soft Brown
-        "Sandwich Toppings": "#F5F5F5", # Grey
-        "Soup": "#E0F2F1",           # Soft Teal
-        "Desserts": "#FCE4EC",       # Pale Pink
-        "Ice Cream Toppings": "#F3E5F5", # Lavender
-        "Main Line": "#E3F2FD",      # Pale Blue
-        "Island 3": "#E8EAF6",       # Light Indigo
-        "Kove": "#E1F5FE",           # Sky Blue
-        "Texmex": "#FFEBEE",         # Pale Red
-        "Gluten-Free": "#ECEFF1",    # Blue Grey
-        "Sauce Bar": "#FAFAFA",      # White Smoke
-    }
-    DEFAULT_COLOR = "#EEEEEE"
-
-    # Group by Meal -> Station
-    grouped = {}
-    for item in menu_items:
-# ... (grouping logic remains same until HTML generation) ...
-        meal = item['meal'].capitalize()
-        station = item['station']
-        if meal not in grouped:
-            grouped[meal] = {}
-        if station not in grouped[meal]:
-            grouped[meal][station] = []
-        grouped[meal][station].append(item)
-
-    # Build HTML
-    html = f"""
-    <html>
-    <head>
-        <style>
-            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6; }}
-            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-            .header {{ background-color: #d32f2f; color: white; padding: 10px; text-align: center; border-radius: 5px 5px 0 0; }}
-            .date {{ font-size: 0.9em; margin-top: 2px; opacity: 0.9; }}
-            .meal-section {{ margin-bottom: 30px; border: 1px solid #eee; border-radius: 0 0 5px 5px; padding: 15px; background: #fff; }}
-            .meal-title {{ color: #d32f2f; border-bottom: 2px solid #d32f2f; padding-bottom: 5px; margin-top: 0; }}
-            .station-group {{ margin-bottom: 15px; page-break-inside: avoid; }}
-            .station-name {{ font-weight: bold; color: #444; text-transform: uppercase; font-size: 0.85em; margin-bottom: 8px; padding: 5px 10px; display: inline-block; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }}
-            .menu-item {{ margin-bottom: 8px; padding-left: 10px; border-left: 3px solid #eee; }}
-            .item-name {{ font-weight: 600; font-size: 1.05em; }}
-            .item-desc {{ font-size: 0.9em; color: #666; font-style: italic; }}
-            .footer {{ text-align: center; margin-top: 30px; font-size: 0.8em; color: #999; }}
-            a {{ color: #d32f2f; text-decoration: none; }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1 style="margin: 0; font-size: 1.8em;">Daily Menu</h1>
-                <div class="date">{date_str}</div>
-            </div>
-    """
-
-    # Order meals logically
+    date_sections = []
     meal_order = ["Breakfast", "Lunch", "Dinner"]
-    
-    has_content = False
-    for meal in meal_order:
-        if meal in grouped:
-            has_content = True
-            html += f'<div class="meal-section"><h2 class="meal-title">{meal}</h2>'
-            
-            # Sort stations alphabetically
-            sorted_stations = sorted(grouped[meal].keys())
-            for station in sorted_stations:
-                bg_color = STATION_COLORS.get(station, DEFAULT_COLOR)
-                html += f'<div class="station-group"><div class="station-name" style="background-color: {bg_color};">{station}</div>'
-                for item in grouped[meal][station]:
-                    html += f'<div class="menu-item" style="border-left-color: {bg_color};"><div class="item-name">{item["name"]}</div></div>'
-                html += '</div>'
-            html += '</div>'
 
-    if not has_content:
-        html += '<p style="text-align:center; padding: 20px;">No menu items matched your preferences for today.</p>'
+    for date_key, meals in grouped.items():
+        try:
+            parsed_date = datetime.date.fromisoformat(date_key)
+            date_label = _format_long_date(parsed_date)
+        except ValueError:
+            date_label = date_key
 
-    html += f"""
-            <div class="footer">
-                <p>You are receiving this email because you subscribed to Dickinson Daily Menu.</p>
-                <p><a href="{manage_url}">Manage Preferences</a> | <a href="{unsubscribe_url}">Unsubscribe</a></p>
-            </div>
-        </div>
+        meal_sections = []
+        for meal in meal_order:
+            if meal not in meals:
+                continue
+
+            meal_sections.append(
+                f"""
+                <tr>
+                    <td style="padding: 0 22px 18px;">
+                        <div style="font-size: 20px; font-weight: 700; color: #8e1f2f; margin-bottom: 10px;">{meal}</div>
+                        {_build_card_table(meals[meal])}
+                    </td>
+                </tr>
+                """
+            )
+
+        if meal_sections:
+            date_sections.append(
+                f"""
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 22px; border: 1px solid #eedfcf; border-radius: 24px; background: #fffdf8;">
+                    <tr>
+                        <td style="padding: 20px 22px 12px;">
+                            <div style="font-size: 24px; line-height: 1.2; color: #201815; font-weight: 700;">{date_label}</div>
+                        </td>
+                    </tr>
+                    {''.join(meal_sections)}
+                </table>
+                """
+            )
+
+    if not date_sections:
+        date_sections.append(
+            """
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 22px; border: 1px solid #eedfcf; border-radius: 24px; background: #fffdf8;">
+                <tr>
+                    <td style="padding: 28px 22px; text-align: center; color: #665e58; font-size: 16px;">
+                        No menu items matched your current preferences for this send.
+                    </td>
+                </tr>
+            </table>
+            """
+        )
+
+    return f"""
+    <html>
+    <body style="margin: 0; padding: 0; background: #f5ede2; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #231815;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #f5ede2; padding: 24px 12px;">
+            <tr>
+                <td align="center">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 960px; background: #fff9f1; border: 1px solid #ead8c2; border-radius: 28px; overflow: hidden;">
+                        <tr>
+                            <td style="padding: 28px 28px 18px; background: linear-gradient(180deg, #fff6ee 0%, #fff2e6 100%); border-bottom: 1px solid #efdfcc;">
+                                <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #8e1f2f;">Dickinson Daily Menu</div>
+                                <div style="margin-top: 8px; font-size: 30px; line-height: 1.05; font-weight: 700; color: #231815;">{header_copy}</div>
+                                <div style="margin-top: 10px; font-size: 16px; line-height: 1.5; color: #665e58;">{intro_copy}</div>
+                                <div style="margin-top: 18px;">
+                                    <a href="{full_menu_url}" style="display: inline-block; background: #8e1f2f; color: #fff8f1; text-decoration: none; padding: 12px 18px; border-radius: 999px; font-weight: 700;">{full_menu_label}</a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 4px 18px 0;">
+                                {''.join(date_sections)}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 22px 28px 30px; text-align: center; color: #6d645b; font-size: 13px; line-height: 1.6;">
+                                <div>You are receiving this email because you subscribed to Dickinson Daily Menu.</div>
+                                <div style="margin-top: 10px;">
+                                    <a href="{full_menu_url}" style="color: #8e1f2f; text-decoration: none; font-weight: 700;">View full menu</a>
+                                    &nbsp;|&nbsp;
+                                    <a href="{manage_url}" style="color: #8e1f2f; text-decoration: none; font-weight: 700;">Manage preferences</a>
+                                    &nbsp;|&nbsp;
+                                    <a href="{unsubscribe_url}" style="color: #8e1f2f; text-decoration: none; font-weight: 700;">Unsubscribe</a>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
     </body>
     </html>
     """
-    return html

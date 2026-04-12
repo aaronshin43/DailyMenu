@@ -39,6 +39,8 @@ STATIONS = [
     "TexMex", "Ice Cream Toppings", "Soup", "Desserts", "Special Salad Bar", 
     "Fruit Bar", "Sauce Bar", "Island 3", "Main Line", "Gluten Free", "Kove", "Sandwich Toppings"
 ]
+STATION_ORDER = {station.lower(): index for index, station in enumerate(STATIONS)}
+MEAL_ORDER = {meal: index for index, meal in enumerate(MEAL_TYPES)}
 
 def parse_menu(daily_menu: Dict[str, Any], target_date: Optional[datetime.date] = None) -> List[Dict[str, str]]:
     """
@@ -82,6 +84,7 @@ def parse_menu(daily_menu: Dict[str, Any], target_date: Optional[datetime.date] 
                 food_name = food.get('name', 'Unknown')
                 
                 parsed_items.append({
+                    'date': day.get('date'),
                     'meal': meal_type,
                     'station': current_station,
                     'name': food_name,
@@ -117,6 +120,21 @@ def filter_menu_for_user(menu_items: List[Dict], preferences: Dict) -> List[Dict
         filtered.append(item)
         
     return filtered
+
+def sort_menu_items(menu_items: List[Dict]) -> List[Dict]:
+    """
+    Sort menu items by date, meal order, station order, then item name.
+    """
+    return sorted(
+        menu_items,
+        key=lambda item: (
+            item.get('date', ''),
+            MEAL_ORDER.get(item.get('meal', '').lower(), 99),
+            STATION_ORDER.get(item.get('station', '').lower(), 999),
+            item.get('station', '').lower(),
+            item.get('name', '').lower(),
+        ),
+    )
 
 if __name__ == "__main__":
     # Quick test

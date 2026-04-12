@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { MEALS, STATION_OPTIONS } from "@/lib/constants";
+import { DAYS_AHEAD_OPTIONS, MEALS, STATION_OPTIONS } from "@/lib/constants";
 
 type LoadState = "loading" | "ready" | "error";
 
@@ -17,6 +17,7 @@ type PreferencesPayload = {
   preferences: {
     meals: string[];
     stations: string[];
+    days_ahead: 1 | 2;
   };
 };
 
@@ -38,6 +39,7 @@ export function ManageForm({ token }: { token: string }) {
   const [isActive, setIsActive] = useState(true);
   const [meals, setMeals] = useState<string[]>([]);
   const [stations, setStations] = useState<string[]>([]);
+  const [daysAhead, setDaysAhead] = useState<1 | 2>(1);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<SubmitState>(null);
 
@@ -64,6 +66,7 @@ export function ManageForm({ token }: { token: string }) {
           setIsActive(payload.isActive);
           setMeals(payload.preferences.meals);
           setStations(payload.preferences.stations);
+          setDaysAhead(payload.preferences.days_ahead ?? 1);
           setLoadState("ready");
         }
       } catch (error) {
@@ -98,7 +101,7 @@ export function ManageForm({ token }: { token: string }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ token, meals, stations }),
+        body: JSON.stringify({ token, meals, stations, days_ahead: daysAhead }),
       });
 
       const payload = (await response.json()) as { error?: string; message?: string };
@@ -140,6 +143,22 @@ export function ManageForm({ token }: { token: string }) {
       <div className="message-box info">
         Managing preferences for <strong>{email}</strong>
         {isActive ? "" : ". This subscription is currently inactive."}
+      </div>
+
+      <div className="field-group">
+        <label htmlFor="manage_days_ahead">Days per email</label>
+        <select
+          id="manage_days_ahead"
+          className="input"
+          value={daysAhead}
+          onChange={(event) => setDaysAhead(Number(event.target.value) as 1 | 2)}
+        >
+          {DAYS_AHEAD_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option} day{option === 1 ? "" : "s"}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="split-grid">

@@ -1,4 +1,5 @@
 export const MEALS = ["breakfast", "lunch", "dinner"] as const;
+export const DAYS_AHEAD_OPTIONS = [1, 2] as const;
 
 export const STATIONS = [
   "Deli",
@@ -21,3 +22,6 @@ export const STATIONS = [
 ] as const;
 
 export const STATION_OPTIONS = [...STATIONS].sort();
+export const STATION_ORDER = Object.fromEntries(
+  STATIONS.map((station, index) => [station.toLowerCase(), index]),
+);

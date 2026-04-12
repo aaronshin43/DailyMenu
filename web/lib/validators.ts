@@ -1,4 +1,4 @@
-import { MEALS, STATIONS } from "@/lib/constants";
+import { DAYS_AHEAD_OPTIONS, MEALS, STATIONS } from "@/lib/constants";
 import type { Meal, UserPreferences } from "@/lib/types";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -30,6 +30,9 @@ export function normalizePreferences(input: unknown): UserPreferences {
   const rawStations = normalizeStringArray(
     (source as { stations?: unknown }).stations,
   );
+  const rawDaysAhead =
+    (source as { days_ahead?: unknown; daysAhead?: unknown }).days_ahead ??
+    (source as { days_ahead?: unknown; daysAhead?: unknown }).daysAhead;
 
   const meals = [...new Set(rawMeals)]
     .map((meal) => meal.toLowerCase())
@@ -48,5 +51,10 @@ export function normalizePreferences(input: unknown): UserPreferences {
     throw new Error("Select at least one station.");
   }
 
-  return { meals, stations };
+  const parsedDaysAhead = Number(rawDaysAhead ?? 1);
+  const days_ahead = DAYS_AHEAD_OPTIONS.includes(parsedDaysAhead as 1 | 2)
+    ? (parsedDaysAhead as 1 | 2)
+    : 1;
+
+  return { meals, stations, days_ahead };
 }

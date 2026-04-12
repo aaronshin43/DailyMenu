@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { MEALS, STATION_OPTIONS } from "@/lib/constants";
+import { DAYS_AHEAD_OPTIONS, MEALS, STATION_OPTIONS } from "@/lib/constants";
 
 type SubmitState = {
   tone: "error" | "success" | "info";
@@ -25,6 +25,7 @@ export function SubscribeForm() {
   const [email, setEmail] = useState("");
   const [meals, setMeals] = useState<string[]>([...MEALS]);
   const [stations, setStations] = useState<string[]>([...STATION_OPTIONS]);
+  const [daysAhead, setDaysAhead] = useState<1 | 2>(1);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<SubmitState>(null);
 
@@ -39,7 +40,7 @@ export function SubscribeForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, meals, stations }),
+        body: JSON.stringify({ email, meals, stations, days_ahead: daysAhead }),
       });
 
       const payload = (await response.json()) as {
@@ -80,6 +81,22 @@ export function SubscribeForm() {
           onChange={(event) => setEmail(event.target.value)}
           required
         />
+      </div>
+
+      <div className="field-group">
+        <label htmlFor="days_ahead">How many days per email?</label>
+        <select
+          id="days_ahead"
+          className="input"
+          value={daysAhead}
+          onChange={(event) => setDaysAhead(Number(event.target.value) as 1 | 2)}
+        >
+          {DAYS_AHEAD_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option} day{option === 1 ? "" : "s"}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="split-grid">

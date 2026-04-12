@@ -217,6 +217,85 @@ a {
   text-align: center;
 }
 
+.pill-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.pill-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff7ed;
+  text-decoration: none;
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+.pill-link.active {
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: #fff9f4;
+  border-color: transparent;
+}
+
+.menu-date-card {
+  border: 1px solid var(--border);
+  background: #fffdf8;
+  border-radius: 24px;
+  padding: 18px;
+  margin-top: 18px;
+}
+
+.menu-date-title {
+  margin: 0 0 14px;
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+
+.menu-meal-block + .menu-meal-block {
+  margin-top: 20px;
+}
+
+.menu-meal-title {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-size: 1.15rem;
+}
+
+.menu-card-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.menu-item-card {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-strong);
+  padding: 14px;
+}
+
+.menu-item-station {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.menu-item-name {
+  font-size: 1rem;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
 @media (max-width: 720px) {
   .page-shell {
     padding: 16px 12px 40px;
@@ -241,5 +320,9 @@ a {
 
   .button {
     width: 100%;
+  }
+
+  .menu-card-grid {
+    grid-template-columns: 1fr;
   }
 }

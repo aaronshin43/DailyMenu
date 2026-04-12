@@ -16,6 +16,7 @@ export async function POST(request: Request) {
       email?: string;
       meals?: string[];
       stations?: string[];
+      days_ahead?: number;
     };
 
     const email = body.email?.trim().toLowerCase();
