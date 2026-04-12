@@ -2,7 +2,7 @@ import os
 
 
 def _get_base_url():
-    return (os.getenv("SITE_URL") or "https://dson-dailymenu.streamlit.app").rstrip("/")
+    return (os.getenv("SITE_URL") or "http://localhost:3000").rstrip("/")
 
 
 def generate_confirmation_email(user_email, token):

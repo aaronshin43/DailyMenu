@@ -1,9 +1,6 @@
 # Ignore venv
 venv/
 
-# Ignore Streamlit secrets
-.streamlit/secrets.toml
-
 # Ignore Supabase secrets
 .supabase/
 

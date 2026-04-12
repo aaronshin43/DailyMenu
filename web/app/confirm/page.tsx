@@ -12,8 +12,7 @@ export default async function ConfirmPage({
     <>
       <h2 className="section-title">Confirm subscription</h2>
       <p className="section-copy">
-        This activates your subscription. The immediate menu send from the old
-        Streamlit flow is not ported yet.
+        This activates your subscription for the next scheduled daily send.
       </p>
       {isValidUuid(token) ? (
         <ConfirmSubscription token={token} />

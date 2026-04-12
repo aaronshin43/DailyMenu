@@ -7,12 +7,9 @@ CREATE TABLE IF NOT EXISTS users (
     token UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE
 );
 
--- Enable Row Level Security (RLS) is recommended, but for this simple script service 
--- handling everything with a service_role key, we just need the table. 
--- However, if using the client side (Streamlit) with a public key, we might need policies.
--- Since Streamlit is a trusted backend (in this context), we will likely use the Service Role Key 
--- or a user with write access. For simplicity in this "Toy Project", we assume 
--- usage of the generic API keys provided by Supabase.
+-- Enable Row Level Security (RLS) if you ever move reads/writes directly into
+-- a public Supabase client. The current app keeps privileged database access on
+-- the server side through Next.js API routes and the backend Python sender.
 
 -- Comment explaining the JSON structure
 COMMENT ON COLUMN users.preferences IS 'JSON structure: {"meals": ["breakfast", "lunch"], "stations": ["main line", "island 3"]}';
