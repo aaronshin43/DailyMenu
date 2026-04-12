@@ -33,24 +33,13 @@ export default async function MenuPage({
   return (
     <>
       <h2 className="section-title">Full menu view</h2>
-      <p className="section-copy">
-        Browse one day at a time with stable meal and station ordering, then
-        expand only the stations you want to inspect.
-      </p>
 
-      <div className="pill-row">
-        <Link href={`/menu?date=${previousParam}`} className="pill-link">
-          Previous day
-        </Link>
-        <Link href={`/menu?date=${currentParam}`} className="pill-link active">
-          {currentParam}
-        </Link>
-        <Link href={`/menu?date=${nextParam}`} className="pill-link">
-          Next day
-        </Link>
-      </div>
-
-      <FullMenuBrowser date={currentParam} meals={groupedMenu} />
+      <FullMenuBrowser
+        date={currentParam}
+        meals={groupedMenu}
+        previousHref={`/menu?date=${previousParam}`}
+        nextHref={`/menu?date=${nextParam}`}
+      />
     </>
   );
 }

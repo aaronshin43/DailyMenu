@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 import { MEALS } from "@/lib/constants";
 import type { Meal } from "@/lib/types";
@@ -8,7 +9,7 @@ import type { GroupedMealMenu } from "@/lib/menu";
 
 function formatDateLabel(date: string): string {
   return new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
+    weekday: "short",
     month: "long",
     day: "numeric",
     year: "numeric",
@@ -18,29 +19,31 @@ function formatDateLabel(date: string): string {
 export function FullMenuBrowser({
   date,
   meals,
+  previousHref,
+  nextHref,
 }: {
   date: string;
   meals: GroupedMealMenu[];
+  previousHref: string;
+  nextHref: string;
 }) {
-  const [selectedMeal, setSelectedMeal] = useState<Meal | "all">("all");
+  const [selectedMeal, setSelectedMeal] = useState<Meal>("lunch");
 
-  const visibleMeals =
-    selectedMeal === "all"
-      ? meals
-      : meals.filter((mealGroup) => mealGroup.meal === selectedMeal);
+  const visibleMeals = meals.filter((mealGroup) => mealGroup.meal === selectedMeal);
 
   return (
     <>
       <section className="menu-date-card">
-        <h3 className="menu-date-title">{formatDateLabel(date)}</h3>
+        <div className="menu-nav">
+          <Link href={previousHref} className="menu-nav-button" aria-label="Previous day">
+            &#x2039;
+          </Link>
+          <h3 className="menu-date-title-centered">{formatDateLabel(date)}</h3>
+          <Link href={nextHref} className="menu-nav-button" aria-label="Next day">
+            &#x203A;
+          </Link>
+        </div>
         <div className="pill-row">
-          <button
-            type="button"
-            className={`pill-link button-reset${selectedMeal === "all" ? " active" : ""}`}
-            onClick={() => setSelectedMeal("all")}
-          >
-            All meals
-          </button>
           {MEALS.map((meal) => (
             <button
               key={meal}
@@ -72,9 +75,8 @@ export function FullMenuBrowser({
                   >
                     <summary className="menu-station-summary">
                       <span>{stationGroup.station}</span>
-                      <span className="menu-station-count">
-                        {stationGroup.items.length} item
-                        {stationGroup.items.length === 1 ? "" : "s"}
+                      <span className="menu-station-chevron" aria-hidden="true">
+                        &#x203A;
                       </span>
                     </summary>
                     <div className="menu-card-grid">

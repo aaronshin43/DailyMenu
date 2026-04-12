@@ -173,11 +173,9 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
 
     if days_ahead == 1:
         header_copy = _format_long_date(start_date)
-        intro_copy = "Your selected meals and stations for today."
         full_menu_label = "View full menu"
     else:
         header_copy = f"{_format_short_date(start_date)} to {_format_short_date(end_date)}"
-        intro_copy = "Your selected meals and stations for the next two days."
         full_menu_label = "Open full menu page"
 
     date_sections = []
@@ -187,10 +185,8 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
         try:
             parsed_date = datetime.date.fromisoformat(date_key)
             date_label = _format_long_date(parsed_date)
-            date_menu_url = f"{base_url}/menu?date={parsed_date.isoformat()}"
         except ValueError:
             date_label = date_key
-            date_menu_url = full_menu_url
 
         meal_sections = []
         for meal in meal_order:
@@ -215,9 +211,6 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
                     <tr>
                         <td style="padding: 20px 22px 12px;">
                             <div style="font-size: 24px; line-height: 1.2; color: #201815; font-weight: 700;">{date_label}</div>
-                            <div style="margin-top: 10px;">
-                                <a href="{date_menu_url}" style="display: inline-block; color: #8e1f2f; text-decoration: none; font-weight: 700;">Open full menu for this date</a>
-                            </div>
                         </td>
                     </tr>
                     {''.join(meal_sections)}
@@ -249,7 +242,6 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
                             <td style="padding: 28px 28px 18px; background: linear-gradient(180deg, #fff6ee 0%, #fff2e6 100%); border-bottom: 1px solid #efdfcc;">
                                 <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #8e1f2f;">Dickinson Daily Menu</div>
                                 <div style="margin-top: 8px; font-size: 30px; line-height: 1.05; font-weight: 700; color: #231815;">{header_copy}</div>
-                                <div style="margin-top: 10px; font-size: 16px; line-height: 1.5; color: #665e58;">{intro_copy}</div>
                                 <div style="margin-top: 18px;">
                                     <a href="{full_menu_url}" style="display: inline-block; background: #8e1f2f; color: #fff8f1; text-decoration: none; padding: 12px 18px; border-radius: 999px; font-weight: 700;">{full_menu_label}</a>
                                 </div>

@@ -5,3 +5,4 @@
 - Add RLS policies if you ever want direct browser access with a public Supabase key
 - Add a transactional email provider later if SMTP becomes fragile
 - select/remove all
+- 칼로리, 알러지 정보, 영양 정보 추가

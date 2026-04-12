@@ -27,10 +27,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 </div>
                 <div className="brand-copy">
                   <h1>Dickinson Daily Menu</h1>
-                  <p>
-                    Subscribe once, then manage breakfast, lunch, dinner, and
-                    station preferences from secure email links.
-                  </p>
                 </div>
               </div>
             </header>
