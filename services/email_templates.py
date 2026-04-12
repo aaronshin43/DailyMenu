@@ -173,10 +173,10 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
 
     if days_ahead == 1:
         header_copy = _format_long_date(start_date)
-        full_menu_label = "View full menu"
     else:
         header_copy = f"{_format_short_date(start_date)} to {_format_short_date(end_date)}"
-        full_menu_label = "Open full menu page"
+    
+    full_menu_label = "View full menu"
 
     date_sections = []
     meal_order = ["Breakfast", "Lunch", "Dinner"]

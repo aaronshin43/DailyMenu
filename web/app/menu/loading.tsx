@@ -1,8 +1,6 @@
 export default function MenuLoading() {
   return (
     <>
-      <h2 className="section-title">Full menu view</h2>
-
       <section className="menu-date-card">
         <div className="menu-nav">
           <div className="menu-nav-button menu-nav-button-skeleton skeleton-block" />
@@ -14,6 +12,11 @@ export default function MenuLoading() {
           <div className="pill-link button-reset skeleton-block skeleton-pill" />
           <div className="pill-link button-reset skeleton-block skeleton-pill" />
           <div className="pill-link button-reset skeleton-block skeleton-pill" />
+        </div>
+
+        <div className="menu-loading-text">
+          <span className="menu-inline-spinner" aria-hidden="true" />
+          <span>Loading menu...</span>
         </div>
 
         <div className="menu-station-stack">

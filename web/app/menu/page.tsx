@@ -32,8 +32,6 @@ export default async function MenuPage({
 
   return (
     <>
-      <h2 className="section-title">Full menu view</h2>
-
       <FullMenuBrowser
         date={currentParam}
         meals={groupedMenu}

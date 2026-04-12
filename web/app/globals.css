@@ -251,15 +251,15 @@ a {
 }
 
 .menu-nav {
-  display: grid;
-  grid-template-columns: 52px 1fr 52px;
-  align-items: center;
-  gap: 10px;
+  position: relative;
+  min-height: 52px;
   margin-bottom: 18px;
 }
 
 .menu-nav-button {
-  display: grid;
+  position: absolute;
+  top: 50%;
+  display: inline-grid;
   place-items: center;
   width: 52px;
   height: 52px;
@@ -270,6 +270,7 @@ a {
   font-size: 1.8rem;
   font-weight: 700;
   text-decoration: none;
+  transform: translateY(-50%);
 }
 
 .menu-date-title-centered {
@@ -277,16 +278,19 @@ a {
   text-align: center;
   font-size: 1.6rem;
   line-height: 1.1;
+  padding: 10px 64px 0;
+}
+
+.menu-nav-button.prev {
+  left: 0;
+}
+
+.menu-nav-button.next {
+  right: 0;
 }
 
 .menu-meal-block + .menu-meal-block {
-  margin-top: 20px;
-}
-
-.menu-meal-title {
-  margin: 0 0 10px;
-  color: var(--accent);
-  font-size: 1.15rem;
+  margin-top: 18px;
 }
 
 .menu-card-grid {
@@ -338,11 +342,17 @@ a {
 }
 
 .menu-station-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
   color: var(--muted);
   font-size: 1.25rem;
   line-height: 1;
+  transform-origin: center;
   transform: rotate(90deg);
-  transition: transform 160ms ease;
+  transition: transform 220ms ease;
 }
 
 .menu-station-details:not([open]) .menu-station-chevron {
@@ -398,9 +408,34 @@ a {
   border-radius: 999px;
 }
 
+.menu-loading-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 16px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.menu-inline-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid rgba(142, 31, 47, 0.18);
+  border-top-color: var(--accent);
+  animation: menu-spinner 0.8s linear infinite;
+}
+
 @keyframes skeleton-shimmer {
   100% {
     transform: translateX(100%);
+  }
+}
+
+@keyframes menu-spinner {
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -436,5 +471,6 @@ a {
 
   .menu-date-title-centered {
     font-size: 1.25rem;
+    padding: 12px 56px 0;
   }
 }

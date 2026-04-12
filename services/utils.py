@@ -35,9 +35,10 @@ def fetch_menu_data(date: datetime.date) -> Dict[str, Any]:
 
 # Hardcoded stations as requested
 STATIONS = [
-    "Deli", "Grill", "Pizza", "Pasta Bar", "Salad Bar", 
-    "TexMex", "Ice Cream Toppings", "Soup", "Desserts", "Special Salad Bar", 
-    "Fruit Bar", "Sauce Bar", "Island 3", "Main Line", "Gluten Free", "Kove", "Sandwich Toppings"
+    "Main Line", "Island 3", "Soup", "Desserts", "Kove", "Gluten-Free",
+    "Grill", "Salad Bar", "Special Salad Bar", "Fruit Bar",
+    "Deli", "Sandwich Toppings", "Pizza", "Pasta Bar", "Sauce Bar",  
+    "TexMex", "Ice Cream Toppings",
 ]
 STATION_ORDER = {station.lower(): index for index, station in enumerate(STATIONS)}
 MEAL_ORDER = {meal: index for index, meal in enumerate(MEAL_TYPES)}

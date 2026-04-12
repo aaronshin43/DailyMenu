@@ -2,23 +2,23 @@ export const MEALS = ["breakfast", "lunch", "dinner"] as const;
 export const DAYS_AHEAD_OPTIONS = [1, 2] as const;
 
 export const STATIONS = [
-  "Deli",
-  "Desserts",
-  "Fruit Bar",
-  "Gluten Free",
-  "Grill",
-  "Ice Cream Toppings",
-  "Island 3",
-  "Kove",
   "Main Line",
-  "Pasta Bar",
-  "Pizza",
-  "Salad Bar",
-  "Sandwich Toppings",
-  "Sauce Bar",
+  "Island 3",
   "Soup",
+  "Desserts",
+  "Kove",
+  "Gluten-Free",
+  "Grill",
+  "Salad Bar",
   "Special Salad Bar",
+  "Fruit Bar",
+  "Deli",
+  "Sandwich Toppings",
+  "Pizza",
+  "Pasta Bar",
+  "Sauce Bar",
   "TexMex",
+  "Ice Cream Toppings",
 ] as const;
 
 export const STATION_OPTIONS = [...STATIONS].sort();

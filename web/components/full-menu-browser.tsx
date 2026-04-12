@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { startTransition, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import { MEALS } from "@/lib/constants";
 import type { Meal } from "@/lib/types";
@@ -27,22 +27,50 @@ export function FullMenuBrowser({
   previousHref: string;
   nextHref: string;
 }) {
+  const router = useRouter();
+  const [isPending, startNavTransition] = useTransition();
   const [selectedMeal, setSelectedMeal] = useState<Meal>("lunch");
 
   const visibleMeals = meals.filter((mealGroup) => mealGroup.meal === selectedMeal);
+
+  function navigate(href: string) {
+    startNavTransition(() => {
+      startTransition(() => {
+        router.push(href);
+      });
+    });
+  }
 
   return (
     <>
       <section className="menu-date-card">
         <div className="menu-nav">
-          <Link href={previousHref} className="menu-nav-button" aria-label="Previous day">
+          <button
+            type="button"
+            className="menu-nav-button prev button-reset"
+            aria-label="Previous day"
+            onClick={() => navigate(previousHref)}
+            disabled={isPending}
+          >
             &#x2039;
-          </Link>
+          </button>
           <h3 className="menu-date-title-centered">{formatDateLabel(date)}</h3>
-          <Link href={nextHref} className="menu-nav-button" aria-label="Next day">
+          <button
+            type="button"
+            className="menu-nav-button next button-reset"
+            aria-label="Next day"
+            onClick={() => navigate(nextHref)}
+            disabled={isPending}
+          >
             &#x203A;
-          </Link>
+          </button>
         </div>
+        {isPending ? (
+          <div className="menu-loading-text">
+            <span className="menu-inline-spinner" aria-hidden="true" />
+            <span>Loading menu...</span>
+          </div>
+        ) : null}
         <div className="pill-row">
           {MEALS.map((meal) => (
             <button
@@ -63,9 +91,6 @@ export function FullMenuBrowser({
         ) : (
           visibleMeals.map((mealGroup) => (
             <div key={mealGroup.meal} className="menu-meal-block">
-              <h4 className="menu-meal-title">
-                {mealGroup.meal[0].toUpperCase() + mealGroup.meal.slice(1)}
-              </h4>
               <div className="menu-station-stack">
                 {mealGroup.stations.map((stationGroup) => (
                   <details
