@@ -30,6 +30,16 @@ export function FullMenuBrowser({
   const router = useRouter();
   const [isPending, startNavTransition] = useTransition();
   const [selectedMeal, setSelectedMeal] = useState<Meal>("lunch");
+  const [openStations, setOpenStations] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      meals.flatMap((mealGroup) =>
+        mealGroup.stations.map((stationGroup) => [
+          `${mealGroup.meal}-${stationGroup.station}`,
+          true,
+        ]),
+      ),
+    ),
+  );
 
   const visibleMeals = meals.filter((mealGroup) => mealGroup.meal === selectedMeal);
 
@@ -39,6 +49,13 @@ export function FullMenuBrowser({
         router.push(href);
       });
     });
+  }
+
+  function toggleStation(key: string) {
+    setOpenStations((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
   }
 
   return (
@@ -93,28 +110,43 @@ export function FullMenuBrowser({
             <div key={mealGroup.meal} className="menu-meal-block">
               <div className="menu-station-stack">
                 {mealGroup.stations.map((stationGroup) => (
-                  <details
-                    key={`${mealGroup.meal}-${stationGroup.station}`}
-                    className="menu-station-details"
-                    open
-                  >
-                    <summary className="menu-station-summary">
-                      <span>{stationGroup.station}</span>
-                      <span className="menu-station-chevron" aria-hidden="true">
-                        &#x203A;
-                      </span>
-                    </summary>
-                    <div className="menu-card-grid">
-                      {stationGroup.items.map((item) => (
-                        <article
-                          key={`${item.date}-${item.meal}-${item.station}-${item.name}`}
-                          className="menu-item-card"
+                  (() => {
+                    const stationKey = `${mealGroup.meal}-${stationGroup.station}`;
+                    const isOpen = openStations[stationKey] ?? true;
+
+                    return (
+                      <div
+                        key={stationKey}
+                        className={`menu-station-details${isOpen ? " is-open" : ""}`}
+                      >
+                        <button
+                          type="button"
+                          className="menu-station-summary button-reset-plain"
+                          onClick={() => toggleStation(stationKey)}
+                          aria-expanded={isOpen}
                         >
-                          <div className="menu-item-name">{item.name}</div>
-                        </article>
-                      ))}
-                    </div>
-                  </details>
+                          <span>{stationGroup.station}</span>
+                          <span className="menu-station-chevron" aria-hidden="true">
+                            &#x203A;
+                          </span>
+                        </button>
+                        <div className="menu-station-panel">
+                          <div className="menu-station-panel-inner">
+                            <div className="menu-card-grid">
+                              {stationGroup.items.map((item) => (
+                                <article
+                                  key={`${item.date}-${item.meal}-${item.station}-${item.name}`}
+                                  className="menu-item-card"
+                                >
+                                  <div className="menu-item-name">{item.name}</div>
+                                </article>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
                 ))}
               </div>
             </div>

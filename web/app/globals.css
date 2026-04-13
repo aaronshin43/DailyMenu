@@ -242,6 +242,17 @@ a {
   font: inherit;
 }
 
+.button-reset-plain {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
 .menu-date-card {
   padding: 0;
   margin-top: 18px;
@@ -326,18 +337,33 @@ a {
 
 .menu-station-summary {
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  list-style: none;
   cursor: pointer;
   padding: 14px 0;
   font-weight: 700;
   color: var(--accent-strong);
+  text-align: left;
 }
 
-.menu-station-summary::-webkit-details-marker {
-  display: none;
+.menu-station-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 260ms ease,
+    opacity 220ms ease;
+}
+
+.menu-station-panel-inner {
+  overflow: hidden;
+}
+
+.menu-station-details.is-open .menu-station-panel {
+  grid-template-rows: 1fr;
+  opacity: 1;
 }
 
 .menu-station-chevron {
@@ -350,12 +376,12 @@ a {
   font-size: 1.25rem;
   line-height: 1;
   transform-origin: center;
-  transform: rotate(90deg);
-  transition: transform 220ms ease;
+  transform: rotate(0deg);
+  transition: transform 260ms ease;
 }
 
-.menu-station-details:not([open]) .menu-station-chevron {
-  transform: rotate(0deg);
+.menu-station-details.is-open .menu-station-chevron {
+  transform: rotate(90deg);
 }
 
 .skeleton-block {
