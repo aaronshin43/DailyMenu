@@ -84,7 +84,7 @@ export function SubscribeForm() {
       </div>
 
       <div className="field-group">
-        <label htmlFor="days_ahead">How many days per email?</label>
+        <label htmlFor="days_ahead">Menu range in each email</label>
         <select
           id="days_ahead"
           className="input"
@@ -102,7 +102,7 @@ export function SubscribeForm() {
       <div className="split-grid">
         <div className="field-group">
           <span className="label-text">Meals</span>
-          <div className="checkbox-panel">
+          <div className="checkbox-panel checkbox-panel-tall">
             <div className="checkbox-list">
               {MEALS.map((meal) => (
                 <label key={meal} className="checkbox-item">
@@ -124,7 +124,23 @@ export function SubscribeForm() {
 
         <div className="field-group">
           <span className="label-text">Stations</span>
-          <div className="checkbox-panel">
+          <div className="checkbox-panel checkbox-panel-tall">
+            <div className="panel-actions">
+              <button
+                type="button"
+                className="panel-action-button"
+                onClick={() => setStations([...STATION_OPTIONS])}
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                className="panel-action-button"
+                onClick={() => setStations([])}
+              >
+                Remove all
+              </button>
+            </div>
             <div className="checkbox-list">
               {STATION_OPTIONS.map((station) => (
                 <label key={station} className="checkbox-item">
@@ -153,7 +169,7 @@ export function SubscribeForm() {
         <div className={`message-box ${result.tone}`}>{result.message}</div>
       ) : null}
 
-      <div className="button-row">
+      <div className="button-row button-row-centered">
         <button className="button" type="submit" disabled={pending}>
           {pending ? "Sending..." : "Subscribe"}
         </button>

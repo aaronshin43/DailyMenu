@@ -146,7 +146,7 @@ export function ManageForm({ token }: { token: string }) {
       </div>
 
       <div className="field-group">
-        <label htmlFor="manage_days_ahead">Days per email</label>
+        <label htmlFor="manage_days_ahead">Menu range in each email</label>
         <select
           id="manage_days_ahead"
           className="input"
@@ -164,7 +164,7 @@ export function ManageForm({ token }: { token: string }) {
       <div className="split-grid">
         <div className="field-group">
           <span className="label-text">Meals</span>
-          <div className="checkbox-panel">
+          <div className="checkbox-panel checkbox-panel-tall">
             <div className="checkbox-list">
               {MEALS.map((meal) => (
                 <label key={meal} className="checkbox-item">
@@ -186,7 +186,23 @@ export function ManageForm({ token }: { token: string }) {
 
         <div className="field-group">
           <span className="label-text">Stations</span>
-          <div className="checkbox-panel">
+          <div className="checkbox-panel checkbox-panel-tall">
+            <div className="panel-actions">
+              <button
+                type="button"
+                className="panel-action-button"
+                onClick={() => setStations([...STATION_OPTIONS])}
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                className="panel-action-button"
+                onClick={() => setStations([])}
+              >
+                Remove all
+              </button>
+            </div>
             <div className="checkbox-list">
               {STATION_OPTIONS.map((station) => (
                 <label key={station} className="checkbox-item">
