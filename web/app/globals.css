@@ -152,11 +152,11 @@ a {
 }
 
 .checkbox-list {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   max-height: 320px;
   overflow-y: auto;
-  align-content: start;
 }
 
 .checkbox-panel-tall .checkbox-list {
@@ -207,7 +207,14 @@ a {
   justify-content: center;
 }
 
+.button-row-nav {
+  margin-bottom: 22px;
+}
+
 .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: 999px;
   padding: 16px 28px;
@@ -222,6 +229,16 @@ a {
 .button:disabled {
   opacity: 0.6;
   cursor: wait;
+}
+
+.button-link {
+  text-decoration: none;
+}
+
+.button-secondary {
+  background: #fff7ed;
+  color: var(--accent-strong);
+  border: 1px solid var(--border);
 }
 
 .message-box {
@@ -259,6 +276,36 @@ a {
   gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 20px;
+}
+
+.menu-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.menu-pill-row {
+  margin-bottom: 0;
+}
+
+.menu-utility-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.menu-secondary-link {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 8px 14px;
+  border: 1px solid rgba(231, 216, 200, 0.9);
+  background: rgba(255, 247, 237, 0.8);
+  color: var(--accent-strong);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 700;
 }
 
 .pill-link {
@@ -556,5 +603,14 @@ a {
   .menu-date-title-centered {
     font-size: 1.25rem;
     padding: 12px 56px 0;
+  }
+
+  .menu-utility-row {
+    justify-content: flex-start;
+  }
+
+  .menu-filter-row {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

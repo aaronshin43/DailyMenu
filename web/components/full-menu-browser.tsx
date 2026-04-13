@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { startTransition, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
@@ -21,11 +22,13 @@ export function FullMenuBrowser({
   meals,
   previousHref,
   nextHref,
+  subscribeHref,
 }: {
   date: string;
   meals: GroupedMealMenu[];
   previousHref: string;
   nextHref: string;
+  subscribeHref?: string;
 }) {
   const router = useRouter();
   const [isPending, startNavTransition] = useTransition();
@@ -88,17 +91,26 @@ export function FullMenuBrowser({
             <span>Loading menu...</span>
           </div>
         ) : null}
-        <div className="pill-row">
-          {MEALS.map((meal) => (
-            <button
-              key={meal}
-              type="button"
-              className={`pill-link button-reset${selectedMeal === meal ? " active" : ""}`}
-              onClick={() => setSelectedMeal(meal)}
-            >
-              {meal[0].toUpperCase() + meal.slice(1)}
-            </button>
-          ))}
+        <div className="menu-filter-row">
+          <div className="pill-row menu-pill-row">
+            {MEALS.map((meal) => (
+              <button
+                key={meal}
+                type="button"
+                className={`pill-link button-reset${selectedMeal === meal ? " active" : ""}`}
+                onClick={() => setSelectedMeal(meal)}
+              >
+                {meal[0].toUpperCase() + meal.slice(1)}
+              </button>
+            ))}
+          </div>
+          {subscribeHref ? (
+            <div className="menu-utility-row">
+              <Link href={subscribeHref} className="menu-secondary-link">
+                Subscribe
+              </Link>
+            </div>
+          ) : null}
         </div>
 
         {visibleMeals.length === 0 ? (

@@ -31,13 +31,12 @@ export default async function MenuPage({
   const previousParam = formatDateParam(shiftDate(selectedDate, -1));
 
   return (
-    <>
-      <FullMenuBrowser
-        date={currentParam}
-        meals={groupedMenu}
-        previousHref={`/menu?date=${previousParam}`}
-        nextHref={`/menu?date=${nextParam}`}
-      />
-    </>
+    <FullMenuBrowser
+      date={currentParam}
+      meals={groupedMenu}
+      previousHref={`/menu?date=${previousParam}`}
+      nextHref={`/menu?date=${nextParam}`}
+      subscribeHref="/"
+    />
   );
 }
