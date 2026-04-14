@@ -188,7 +188,7 @@ export function ManageForm({ token }: { token: string }) {
           rows={4}
         />
         <div className="field-hint">
-          Watchlist matches are checked across all stations.
+          Watchlists are checked across all stations.
         </div>
       </div>
 
