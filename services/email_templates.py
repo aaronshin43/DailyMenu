@@ -57,10 +57,10 @@ def _build_card_table(items: List[Dict[str, Any]]) -> str:
         for item in row:
             cells.append(
                 f"""
-                <td valign="top" width="33.33%" style="padding: 6px;">
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #eddac7; border-radius: 16px; background: #fffaf3;">
+                <td valign="top" width="33.33%" style="padding: 5px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #ece0d2; border-radius: 12px; background: #fffdfa;">
                         <tr>
-                            <td style="padding: 14px; font-size: 16px; line-height: 1.35; color: #231815; font-weight: 700;">
+                            <td style="padding: 10px 12px; font-size: 15px; line-height: 1.32; color: #231815; font-weight: 600;">
                                 {item["name"]}
                             </td>
                         </tr>
@@ -90,12 +90,10 @@ def _build_station_sections(stations: Dict[str, List[Dict[str, Any]]]) -> str:
     for station in sorted_stations:
         sections.append(
             f"""
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 12px; border: 1px solid #efdfcc; border-radius: 18px; background: #fffaf4;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 12px; border: 1px solid #efe2d4; border-radius: 18px; background: #fffaf4;">
                 <tr>
-                    <td style="padding: 14px 16px 8px;">
-                        <div style="display: inline-block; padding: 6px 10px; border-radius: 999px; background: #f6dfe3; color: #8e1f2f; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;">
-                            {station}
-                        </div>
+                    <td style="padding: 14px 16px 2px; font-size: 16px; line-height: 1.3; color: #6f1523; font-weight: 700;">
+                        {station}
                     </td>
                 </tr>
                 <tr>
@@ -171,11 +169,6 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
     grouped = _group_items_for_digest(menu_items)
     end_date = start_date + datetime.timedelta(days=days_ahead - 1)
 
-    if days_ahead == 1:
-        header_copy = _format_long_date(start_date)
-    else:
-        header_copy = f"{_format_short_date(start_date)} to {_format_short_date(end_date)}"
-    
     full_menu_label = "View full menu"
 
     date_sections = []
@@ -207,9 +200,9 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
         if meal_sections:
             date_sections.append(
                 f"""
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 22px; border: 1px solid #eedfcf; border-radius: 24px; background: #fffdf8;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 22px;">
                     <tr>
-                        <td style="padding: 20px 22px 12px;">
+                        <td valign="middle" style="padding: 6px 8px 12px;">
                             <div style="font-size: 24px; line-height: 1.2; color: #201815; font-weight: 700;">{date_label}</div>
                         </td>
                     </tr>
@@ -221,7 +214,7 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
     if not date_sections:
         date_sections.append(
             """
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 22px; border: 1px solid #eedfcf; border-radius: 24px; background: #fffdf8;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 22px; border: 1px solid #eedfcf; border-radius: 20px; background: #fffdf8;">
                 <tr>
                     <td style="padding: 28px 22px; text-align: center; color: #665e58; font-size: 16px;">
                         No menu items matched your current preferences for this send.
@@ -239,16 +232,21 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
                 <td align="center">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 960px; background: #fff9f1; border: 1px solid #ead8c2; border-radius: 28px; overflow: hidden;">
                         <tr>
-                            <td style="padding: 28px 28px 18px; background: linear-gradient(180deg, #fff6ee 0%, #fff2e6 100%); border-bottom: 1px solid #efdfcc;">
-                                <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #8e1f2f;">Dickinson Daily Menu</div>
-                                <div style="margin-top: 8px; font-size: 30px; line-height: 1.05; font-weight: 700; color: #231815;">{header_copy}</div>
-                                <div style="margin-top: 18px;">
-                                    <a href="{full_menu_url}" style="display: inline-block; background: #8e1f2f; color: #fff8f1; text-decoration: none; padding: 12px 18px; border-radius: 999px; font-weight: 700;">{full_menu_label}</a>
-                                </div>
+                            <td bgcolor="#f7e5d2" style="padding: 24px 28px 16px; background-color: #f7e5d2; border-bottom: 1px solid #ead3ba;">
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td valign="middle" style="font-size: 16px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #8e1f2f;">
+                                            Dickinson Daily Menu
+                                        </td>
+                                        <td align="right" valign="middle">
+                                            <a href="{full_menu_url}" style="display: inline-block; min-width: 154px; text-align: center; white-space: nowrap; background: #8e1f2f; color: #fff8f1; text-decoration: none; padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700;">{full_menu_label}</a>
+                                        </td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
                         <tr>
-                            <td style="padding: 4px 18px 0;">
+                            <td style="padding: 8px 20px 0;">
                                 {''.join(date_sections)}
                             </td>
                         </tr>
