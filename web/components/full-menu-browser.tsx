@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { startTransition, useState, useTransition } from "react";
+import { startTransition, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { MEALS } from "@/lib/constants";
@@ -45,6 +45,11 @@ export function FullMenuBrowser({
   );
 
   const visibleMeals = meals.filter((mealGroup) => mealGroup.meal === selectedMeal);
+
+  useEffect(() => {
+    void router.prefetch(previousHref);
+    void router.prefetch(nextHref);
+  }, [nextHref, previousHref, router]);
 
   function navigate(href: string) {
     startNavTransition(() => {

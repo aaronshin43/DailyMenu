@@ -1,9 +1,5 @@
-import Link from "next/link";
-
 import { FullMenuBrowser } from "@/components/full-menu-browser";
 import { fetchGroupedMenuForDate, parseMenuDate } from "@/lib/menu";
-
-export const dynamic = "force-dynamic";
 
 function formatDateParam(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(

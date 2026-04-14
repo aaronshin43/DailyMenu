@@ -1,8 +1,11 @@
-import { MEALS, STATION_ORDER } from "@/lib/constants";
+import { unstable_cache } from "next/cache";
+
+import { MEALS, STATIONS, STATION_ORDER } from "@/lib/constants";
 import type { Meal, MenuItem } from "@/lib/types";
 
 const MENU_BASE_URL =
   "https://dickinson.api.nutrislice.com/menu/api/weeks/school/the-caf/menu-type";
+const MENU_REVALIDATE_SECONDS = 60 * 30;
 
 type NutrisliceDay = {
   date?: string;
@@ -45,6 +48,33 @@ function toIsoDate(date: Date): string {
   )}`;
 }
 
+function normalizeStationKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function toDisplayTitle(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function normalizeStationName(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "General";
+  }
+
+  const stationKey = normalizeStationKey(trimmed);
+  const matchedStation = STATIONS.find(
+    (station) => normalizeStationKey(station) === stationKey,
+  );
+
+  return matchedStation ?? toDisplayTitle(trimmed);
+}
+
 function sortMenuItems(items: MenuItem[]): MenuItem[] {
   return [...items].sort((left, right) => {
     const mealCompare = MEALS.indexOf(left.meal) - MEALS.indexOf(right.meal);
@@ -68,8 +98,8 @@ function sortMenuItems(items: MenuItem[]): MenuItem[] {
   });
 }
 
-export async function fetchMenuForDate(date: Date): Promise<MenuItem[]> {
-  const isoDate = toIsoDate(date);
+async function fetchRawMenuForIsoDate(isoDate: string): Promise<MenuItem[]> {
+  const date = new Date(`${isoDate}T00:00:00`);
   const menus = await Promise.all(
     MEALS.map(async (meal) => {
       const response = await fetch(getNutrisliceUrl(date, meal), {
@@ -102,7 +132,7 @@ export async function fetchMenuForDate(date: Date): Promise<MenuItem[]> {
       let currentStation = "General";
       for (const item of day.menu_items ?? []) {
         if (item.is_station_header) {
-          currentStation = item.text?.trim() || "General";
+          currentStation = normalizeStationName(item.text ?? "General");
           continue;
         }
 
@@ -124,11 +154,7 @@ export async function fetchMenuForDate(date: Date): Promise<MenuItem[]> {
   return sortMenuItems(parsedItems);
 }
 
-export async function fetchGroupedMenuForDate(
-  date: Date,
-): Promise<GroupedMealMenu[]> {
-  const items = await fetchMenuForDate(date);
-
+function groupMenuItems(items: MenuItem[]): GroupedMealMenu[] {
   return MEALS.map((meal) => {
     const mealItems = items.filter((item) => item.meal === meal);
     const stationMap = new Map<string, MenuItem[]>();
@@ -159,6 +185,23 @@ export async function fetchGroupedMenuForDate(
       stations,
     };
   }).filter((mealGroup) => mealGroup.stations.length > 0);
+}
+
+const fetchGroupedMenuForIsoDateCached = unstable_cache(
+  async (isoDate: string) => {
+    const items = await fetchRawMenuForIsoDate(isoDate);
+    return groupMenuItems(items);
+  },
+  ["grouped-menu-by-date"],
+  {
+    revalidate: MENU_REVALIDATE_SECONDS,
+  },
+);
+
+export async function fetchGroupedMenuForDate(
+  date: Date,
+): Promise<GroupedMealMenu[]> {
+  return fetchGroupedMenuForIsoDateCached(toIsoDate(date));
 }
 
 export function parseMenuDate(value?: string): Date {
