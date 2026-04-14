@@ -53,8 +53,20 @@ function formatNutritionValue(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
-function formatCalories(value: number | null): string | null {
-  if (value === null) {
+function hasNumericValue(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function formatMaybeNutritionValue(value: unknown): string {
+  if (!hasNumericValue(value)) {
+    return "0";
+  }
+
+  return formatNutritionValue(value);
+}
+
+function formatCalories(value: number | null | undefined): string | null {
+  if (!hasNumericValue(value)) {
     return null;
   }
 
@@ -341,13 +353,13 @@ export function FullMenuBrowser({
                   <div className="nutrition-panel-calories-row">
                     <span className="nutrition-panel-calories-label">Calories</span>
                     <span className="nutrition-panel-calories-value">
-                      {formatNutritionValue(selectedItem.nutritionInfo.calories ?? 0)}
+                      {formatMaybeNutritionValue(selectedItem.nutritionInfo.calories)}
                     </span>
                   </div>
                   <div className="nutrition-panel-rule nutrition-panel-rule-strong" />
                   <div className="nutrition-panel-dv">% Daily value not available</div>
                   {NUTRITION_ROWS.filter(
-                    (row) => selectedItem.nutritionInfo?.[row.key] !== null,
+                    (row) => hasNumericValue(selectedItem.nutritionInfo?.[row.key]),
                   ).map((row) => (
                     <Fragment key={row.key}>
                       <div
@@ -355,7 +367,7 @@ export function FullMenuBrowser({
                       >
                         <span>{row.label}</span>
                         <span>
-                          {formatNutritionValue(selectedItem.nutritionInfo?.[row.key] ?? 0)}
+                          {formatMaybeNutritionValue(selectedItem.nutritionInfo?.[row.key])}
                           {row.unit}
                         </span>
                       </div>

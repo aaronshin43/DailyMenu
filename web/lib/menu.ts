@@ -123,6 +123,26 @@ function normalizeServingSize(food: NutrisliceFood | undefined): ServingSizeInfo
   return { amount, unit };
 }
 
+function toNullableNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const parsed = Number(trimmed);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
 function normalizeNutritionInfo(food: NutrisliceFood | undefined): NutritionInfo | null {
   const nutrition = food?.rounded_nutrition_info;
   if (!nutrition) {
@@ -130,22 +150,22 @@ function normalizeNutritionInfo(food: NutrisliceFood | undefined): NutritionInfo
   }
 
   const normalized: NutritionInfo = {
-    calories: nutrition.calories ?? null,
-    g_fat: nutrition.g_fat ?? null,
-    g_saturated_fat: nutrition.g_saturated_fat ?? null,
-    g_trans_fat: nutrition.g_trans_fat ?? null,
-    mg_cholesterol: nutrition.mg_cholesterol ?? null,
-    mg_sodium: nutrition.mg_sodium ?? null,
-    g_carbs: nutrition.g_carbs ?? null,
-    g_fiber: nutrition.g_fiber ?? null,
-    g_sugar: nutrition.g_sugar ?? null,
-    g_added_sugar: nutrition.g_added_sugar ?? null,
-    g_protein: nutrition.g_protein ?? null,
-    mg_calcium: nutrition.mg_calcium ?? null,
-    mg_iron: nutrition.mg_iron ?? null,
-    mg_potassium: nutrition.mg_potassium ?? null,
-    mg_vitamin_c: nutrition.mg_vitamin_c ?? null,
-    mg_vitamin_d: nutrition.mg_vitamin_d ?? null,
+    calories: toNullableNumber(nutrition.calories),
+    g_fat: toNullableNumber(nutrition.g_fat),
+    g_saturated_fat: toNullableNumber(nutrition.g_saturated_fat),
+    g_trans_fat: toNullableNumber(nutrition.g_trans_fat),
+    mg_cholesterol: toNullableNumber(nutrition.mg_cholesterol),
+    mg_sodium: toNullableNumber(nutrition.mg_sodium),
+    g_carbs: toNullableNumber(nutrition.g_carbs),
+    g_fiber: toNullableNumber(nutrition.g_fiber),
+    g_sugar: toNullableNumber(nutrition.g_sugar),
+    g_added_sugar: toNullableNumber(nutrition.g_added_sugar),
+    g_protein: toNullableNumber(nutrition.g_protein),
+    mg_calcium: toNullableNumber(nutrition.mg_calcium),
+    mg_iron: toNullableNumber(nutrition.mg_iron),
+    mg_potassium: toNullableNumber(nutrition.mg_potassium),
+    mg_vitamin_c: toNullableNumber(nutrition.mg_vitamin_c),
+    mg_vitamin_d: toNullableNumber(nutrition.mg_vitamin_d),
   };
 
   return Object.values(normalized).some((value) => value !== null)
@@ -225,7 +245,7 @@ async function fetchRawMenuForIsoDate(isoDate: string): Promise<MenuItem[]> {
           meal,
           station: currentStation,
           name: foodName,
-          calories: food?.rounded_nutrition_info?.calories ?? null,
+          calories: toNullableNumber(food?.rounded_nutrition_info?.calories),
           nutritionInfo: normalizeNutritionInfo(food),
           ingredients: food?.ingredients?.trim() || null,
           icons: normalizeFoodIcons(food),
@@ -276,7 +296,7 @@ const fetchGroupedMenuForIsoDateCached = unstable_cache(
     const items = await fetchRawMenuForIsoDate(isoDate);
     return groupMenuItems(items);
   },
-  ["grouped-menu-by-date"],
+  ["grouped-menu-by-date-v2"],
   {
     revalidate: MENU_REVALIDATE_SECONDS,
   },
