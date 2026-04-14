@@ -1,8 +1,0 @@
-- Port menu parsing/filtering from Python to TypeScript
-- Add rate limiting to subscribe and token routes
-- Add better token expiration or one-time-use flows if desired
-- Add basic analytics on signups and confirmations
-- Add RLS policies if you ever want direct browser access with a public Supabase key
-- Add a transactional email provider later if SMTP becomes fragile
-- select/remove all
-- 칼로리, 알러지 정보, 영양 정보 추가

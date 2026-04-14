@@ -38,3 +38,6 @@ web/.vercel/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# etc
+note.md
