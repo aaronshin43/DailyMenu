@@ -1,95 +1,62 @@
 # AGENTS.md
 
-This file provides guidance to Agents when working with code in this repository.
+Agent-specific notes for this repository. For setup, commands, env vars, and deployment steps, use [README.md](/D:/03_Coding/dailymenu/README.md).
 
-## Project Overview
+## Project Shape
 
-Dickinson Dining Daily is an automated service that sends the daily Dickinson College cafeteria menu to subscribers by email. Users subscribe and manage preferences through a Next.js web app deployed separately from the Python daily sender.
+- Frontend: Next.js app in `web/`
+- Daily sender: `send_menu.py`
+- Shared Python logic: `services/`
+- Manual test helpers: `tests/`
 
-## Commands
+## Data Model Notes
 
-```bash
-# Activate virtual environment (Windows)
-venv\Scripts\activate
+- Supabase `users.preferences` is `JSONB`
+- Current preference shape:
+  - `meals: string[]`
+  - `stations: string[]`
+  - `days_ahead: 1 | 2`
+  - `watchlist: string[]`
+- `days_ahead` and `watchlist` are stored inside `preferences`, not as separate columns
+- `keep_alive` is still updated by `send_menu.py` on each run
 
-# Install Python dependencies
-pip install -r requirements.txt
+## Behavior Rules
 
-# Run the Next.js frontend locally
-cd web
-npm install
-npm run dev
+- Token-based auth only
+  - `/confirm?token=...`
+  - `/manage?token=...`
+  - `/unsubscribe?token=...`
+- There is no login/session system
+- `/menu` is public and not personalized
+- `watchlist` matching:
+  - respects selected `meals`
+  - ignores selected `stations`
+  - checks all stations in the fetched menu window
+- A user may subscribe with no stations selected if `watchlist` is non-empty
+- Daily email sends when either of these is true:
+  - digest items matched meal/station preferences
+  - watchlist hits were found
 
-# Run the email-sending backend (requires env vars)
-python send_menu.py
+## Menu / Parsing Notes
 
-# Test for a specific date or single user
-python send_menu.py --date 2026-04-11
-python send_menu.py --email student@dickinson.edu
+- Nutrislice fetch + parse logic lives in `services/utils.py`
+- Station ordering is hardcoded in:
+  - `services/utils.py`
+  - `web/lib/constants.ts`
+- If station ordering changes, update both places together
 
-# Quick test of the Nutrislice API parsing
-python services/utils.py
-```
+## Email Notes
 
-## Environment Setup
+- Daily digest HTML is generated in `services/email_templates.py`
+- Next.js transactional emails live separately in `web/lib/email-templates.ts`
+- Outlook is less reliable with gradients; prefer solid colors + `bgcolor` for email-safe backgrounds
 
-**Frontend** (`web/`): reads from `web/.env.local`:
+## Test Helpers
 
-```env
-SITE_URL=http://localhost:3000
-SUPABASE_URL=YOUR_SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
-SMTP_EMAIL=YOUR_SMTP_EMAIL
-SMTP_PASSWORD=YOUR_SMTP_PASSWORD
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=587
-```
+- Manual watchlist hit inspection: `tests/test_watchlist_hits.py`
+- Manual preview email send: `tests/send_preview_email.py`
 
-**Backend** (`send_menu.py`): reads from `.env` or environment variables:
+## When Editing
 
-- `SITE_URL`
-- `SUPABASE_URL`, `SUPABASE_KEY`
-- `SMTP_EMAIL`, `SMTP_PASSWORD`
-- `SMTP_SERVER` (default: `smtp.gmail.com`), `SMTP_PORT` (default: `587`)
-
-## Architecture
-
-```text
-web/
-  app/                - Next.js pages and API routes
-  components/         - frontend UI components
-  lib/                - server-side config, Supabase, email helpers
-send_menu.py          - CLI script run by GitHub Actions daily at 11:00 UTC
-services/
-  utils.py            - Nutrislice API fetching, menu parsing, user preference filtering
-  email_sender.py     - SMTP email dispatch
-  email_templates.py  - HTML daily email generation with manage/unsubscribe links
-.github/workflows/daily_menu.yml - GitHub Actions cron job
-```
-
-**Data flow (daily send):** `send_menu.py` -> heartbeat to Supabase `keep_alive` -> fetch menu from Nutrislice -> query active users from Supabase `users` -> filter per-user preferences -> send HTML email via SMTP.
-
-**Data flow (subscription/manage):** Next.js pages call Next.js API routes -> server-side Supabase updates `users` -> server-side SMTP sends confirmation/manage emails -> user follows tokenized links back to the Next.js frontend.
-
-**Token-based auth:** Each user has a UUID token stored in Supabase. Links use `?token=<uuid>` on `/confirm`, `/manage`, and `/unsubscribe`. There is no separate login system.
-
-## Database Schema
-
-Supabase `users` table (defined in `database/schema.sql`):
-
-- `email` (unique)
-- `token` (UUID)
-- `is_active` (bool)
-- `preferences` (JSONB: `{meals: [...], stations: [...]}`)
-
-Supabase `keep_alive` table:
-
-- single row (`id=1`) updated each run to prevent Supabase free-tier pausing
-
-## Key Notes
-
-- The Nutrislice API base URL is `https://dickinson.api.nutrislice.com/menu/api/weeks/school/the-caf/menu-type/{meal}/{year}/{month}/{day}/`
-- Station list in `services/utils.py` is hardcoded
-- `send_menu.py --email` only sends to active users matching that email
-- The GitHub Actions workflow can be triggered manually via `workflow_dispatch`
-- The Vercel frontend and GitHub Actions backend should use the same `SITE_URL`
+- Keep README as the source of truth for setup and deployment instructions
+- Keep AGENTS focused on repo-specific implementation details and behavioral constraints

@@ -50,6 +50,8 @@ Useful targeted runs:
 python send_menu.py --date 2026-04-11
 python send_menu.py --email student@dickinson.edu
 python services/utils.py
+python tests/test_watchlist_hits.py --watchlist "ramen"
+python tests/send_preview_email.py --to student@dickinson.edu --watchlist "ramen"
 ```
 
 ### Next.js frontend
