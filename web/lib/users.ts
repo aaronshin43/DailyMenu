@@ -15,6 +15,7 @@ function coerceUserRecord(row: SupabaseUserRow): UserRecord {
     meals: [],
     stations: [],
     days_ahead: 1 as const,
+    watchlist: [],
   };
 
   return {
@@ -28,6 +29,11 @@ function coerceUserRecord(row: SupabaseUserRow): UserRecord {
         preferences.days_ahead === 2 || preferences.days_ahead === 1
           ? preferences.days_ahead
           : 1,
+      watchlist: Array.isArray(preferences.watchlist)
+        ? preferences.watchlist.filter(
+            (item): item is string => typeof item === "string",
+          )
+        : [],
     },
   };
 }

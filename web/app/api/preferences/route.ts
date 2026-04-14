@@ -22,7 +22,13 @@ export async function GET(request: Request) {
     return NextResponse.json({
       email: user.email,
       isActive: user.is_active,
-      preferences: user.preferences ?? { meals: [], stations: [], days_ahead: 1 },
+      preferences:
+        user.preferences ?? {
+          meals: [],
+          stations: [],
+          days_ahead: 1,
+          watchlist: [],
+        },
     });
   } catch (error) {
     const message =
@@ -39,6 +45,7 @@ export async function POST(request: Request) {
       meals?: string[];
       stations?: string[];
       days_ahead?: number;
+      watchlist?: string[];
     };
 
     const token = body.token?.trim() ?? "";

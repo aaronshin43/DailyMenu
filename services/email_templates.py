@@ -1,6 +1,7 @@
 import datetime
 import os
-from typing import Dict, List, Any
+from html import escape
+from typing import Dict, List, Any, Optional
 
 from services.utils import MEAL_TYPES, STATION_ORDER
 
@@ -15,6 +16,14 @@ def _format_long_date(date_value: datetime.date) -> str:
 
 def _format_short_date(date_value: datetime.date) -> str:
     return date_value.strftime("%b %d")
+
+
+def _format_watchlist_date(date_value: datetime.date) -> str:
+    return f"{date_value.strftime('%a')}, {date_value.strftime('%b')} {date_value.day}"
+
+
+def _escape_text(value: Any) -> str:
+    return escape(str(value))
 
 
 def _chunk_list(items: List[Dict[str, Any]], size: int) -> List[List[Dict[str, Any]]]:
@@ -61,7 +70,7 @@ def _build_card_table(items: List[Dict[str, Any]]) -> str:
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #ece0d2; border-radius: 12px; background: #fffdfa;">
                         <tr>
                             <td style="padding: 10px 12px; font-size: 15px; line-height: 1.32; color: #231815; font-weight: 600;">
-                                {item["name"]}
+                                {_escape_text(item["name"])}
                             </td>
                         </tr>
                     </table>
@@ -93,7 +102,7 @@ def _build_station_sections(stations: Dict[str, List[Dict[str, Any]]]) -> str:
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 12px; border: 1px solid #efe2d4; border-radius: 18px; background: #fffaf4;">
                 <tr>
                     <td style="padding: 14px 16px 2px; font-size: 16px; line-height: 1.3; color: #6f1523; font-weight: 700;">
-                        {station}
+                        {_escape_text(station)}
                     </td>
                 </tr>
                 <tr>
@@ -106,6 +115,51 @@ def _build_station_sections(stations: Dict[str, List[Dict[str, Any]]]) -> str:
         )
 
     return "".join(sections)
+
+
+def _build_watchlist_section(watchlist_hits: List[Dict[str, Any]]) -> str:
+    if not watchlist_hits:
+        return ""
+
+    rows = []
+    for item in _sort_cards(watchlist_hits):
+        try:
+            parsed_date = datetime.date.fromisoformat(item.get("date", ""))
+            date_label = _format_watchlist_date(parsed_date)
+        except ValueError:
+            date_label = item.get("date", "")
+
+        meal_label = str(item.get("meal", "")).capitalize()
+        rows.append(
+            f"""
+            <tr>
+                <td style="padding: 0 0 10px; font-size: 15px; line-height: 1.4; color: #231815;">
+                    <strong>{_escape_text(date_label)}</strong>
+                    &nbsp;&middot;&nbsp;{_escape_text(meal_label)}
+                    &nbsp;&middot;&nbsp;{_escape_text(item.get("station", "General"))}
+                    &nbsp;&middot;&nbsp;{_escape_text(item.get("name", ""))}
+                </td>
+            </tr>
+            """
+        )
+
+    return f"""
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 18px; border: 1px solid #efdfcc; border-radius: 18px; background: #fffaf4;">
+        <tr>
+            <td style="padding: 18px 20px 8px; font-size: 18px; font-weight: 700; color: #8e1f2f;">
+                <span style="color: #e0a100; font-size: 20px; line-height: 1;">&#9733;</span>
+                <span style="margin-left: 6px;">Watchlist</span>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 0 20px 10px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                    {''.join(rows)}
+                </table>
+            </td>
+        </tr>
+    </table>
+    """
 
 
 def generate_confirmation_email(user_email, token):
@@ -158,7 +212,13 @@ def generate_manage_link_email(user_email, token):
     return html
 
 
-def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date: datetime.date, days_ahead: int):
+def generate_html_email(
+    menu_items: List[Dict[str, Any]],
+    token: str,
+    start_date: datetime.date,
+    days_ahead: int,
+    watchlist_hits: Optional[List[Dict[str, Any]]] = None,
+):
     """
     Generates an HTML email body for a 1-2 day filtered digest.
     """
@@ -167,7 +227,7 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
     unsubscribe_url = f"{base_url}/unsubscribe?token={token}"
     full_menu_url = f"{base_url}/menu?date={start_date.isoformat()}"
     grouped = _group_items_for_digest(menu_items)
-    end_date = start_date + datetime.timedelta(days=days_ahead - 1)
+    watchlist_section = _build_watchlist_section(watchlist_hits or [])
 
     full_menu_label = "View full menu"
 
@@ -203,7 +263,7 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 22px;">
                     <tr>
                         <td valign="middle" style="padding: 6px 8px 12px;">
-                            <div style="font-size: 24px; line-height: 1.2; color: #201815; font-weight: 700;">{date_label}</div>
+                            <div style="font-size: 24px; line-height: 1.2; color: #201815; font-weight: 700;">{_escape_text(date_label)}</div>
                         </td>
                     </tr>
                     {''.join(meal_sections)}
@@ -217,7 +277,7 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 22px; border: 1px solid #eedfcf; border-radius: 20px; background: #fffdf8;">
                 <tr>
                     <td style="padding: 28px 22px; text-align: center; color: #665e58; font-size: 16px;">
-                        No menu items matched your current preferences for this send.
+                        No menu items matched your current meal and station preferences for this send.
                     </td>
                 </tr>
             </table>
@@ -247,6 +307,11 @@ def generate_html_email(menu_items: List[Dict[str, Any]], token: str, start_date
                         </tr>
                         <tr>
                             <td style="padding: 8px 20px 0;">
+                                {watchlist_section}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0 20px 0;">
                                 {''.join(date_sections)}
                             </td>
                         </tr>

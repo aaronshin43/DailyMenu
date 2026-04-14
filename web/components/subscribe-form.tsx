@@ -21,11 +21,19 @@ function toggleArrayValue(
   return current.filter((item) => item !== value);
 }
 
+function parseWatchlist(value: string): string[] {
+  return value
+    .split(/[\n,]+/)
+    .map((item) => item.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
 export function SubscribeForm() {
   const [email, setEmail] = useState("");
   const [meals, setMeals] = useState<string[]>([...MEALS]);
   const [stations, setStations] = useState<string[]>([...STATION_OPTIONS]);
   const [daysAhead, setDaysAhead] = useState<1 | 2>(1);
+  const [watchlistText, setWatchlistText] = useState("");
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<SubmitState>(null);
 
@@ -40,7 +48,13 @@ export function SubscribeForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, meals, stations, days_ahead: daysAhead }),
+        body: JSON.stringify({
+          email,
+          meals,
+          stations,
+          days_ahead: daysAhead,
+          watchlist: parseWatchlist(watchlistText),
+        }),
       });
 
       const payload = (await response.json()) as {
@@ -97,6 +111,21 @@ export function SubscribeForm() {
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="field-group">
+        <label htmlFor="watchlist">Watchlist</label>
+        <textarea
+          id="watchlist"
+          className="input textarea-input"
+          placeholder={"Ramen\nChicken tenders\nChocolate cake"}
+          value={watchlistText}
+          onChange={(event) => setWatchlistText(event.target.value)}
+          rows={4}
+        />
+        <div className="field-hint">
+          Watchlist matches are checked across all stations.
+        </div>
       </div>
 
       <div className="split-grid">

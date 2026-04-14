@@ -4,6 +4,7 @@ export type UserPreferences = {
   meals: Meal[];
   stations: string[];
   days_ahead: 1 | 2;
+  watchlist: string[];
 };
 
 export type MenuItem = {

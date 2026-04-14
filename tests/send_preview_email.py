@@ -1,24 +1,36 @@
 """
 Usage:
-    python send_preview_email.py --to your@email.com
+    python tests/send_preview_email.py --to your@email.com
     
 Options:                                                                                                                                                                
-    python send_preview_email.py --to your@email.com --date 2026-04-13 --days 2
-    python send_preview_email.py --to your@email.com --meal lunch
-    python send_preview_email.py --to your@email.com --meal lunch --meal dinner
-    python send_preview_email.py --to your@email.com --station "Main Line"
+    python tests/send_preview_email.py --to your@email.com --date 2026-04-13 --days 2
+    python tests/send_preview_email.py --to your@email.com --meal lunch
+    python tests/send_preview_email.py --to your@email.com --meal lunch --meal dinner
+    python tests/send_preview_email.py --to your@email.com --station "Main Line"
+    python tests/send_preview_email.py --to your@email.com --meal lunch --meal dinner --watchlist "chocolate cookie"
 """
 
 import argparse
 import datetime
 import logging
+import sys
+from pathlib import Path
 from typing import List, Dict, Any
 
 from dotenv import load_dotenv
 
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from services.email_sender import send_email
 from services.email_templates import generate_html_email
-from services.utils import fetch_menu_data, parse_menu, sort_menu_items
+from services.utils import (
+    fetch_menu_data,
+    find_watchlist_hits,
+    parse_menu,
+    sort_menu_items,
+)
 
 load_dotenv()
 
@@ -50,6 +62,12 @@ def parse_args() -> argparse.Namespace:
         dest="stations",
         help="Limit preview to a station. Repeat for multiple stations.",
     )
+    parser.add_argument(
+        "--watchlist",
+        action="append",
+        dest="watchlist",
+        help="Add a watchlist term. Repeat for multiple saved items.",
+    )
     return parser.parse_args()
 
 
@@ -79,6 +97,25 @@ def filter_preview_items(
     return filtered_items
 
 
+def normalize_watchlist_terms(values: List[str] | None) -> List[str]:
+    terms = []
+    seen = set()
+
+    for value in values or []:
+        normalized = " ".join(value.split()).strip()
+        if not normalized:
+            continue
+
+        dedupe_key = normalized.lower()
+        if dedupe_key in seen:
+            continue
+
+        seen.add(dedupe_key)
+        terms.append(normalized)
+
+    return terms
+
+
 def main() -> None:
     args = parse_args()
     start_date = get_start_date(args.date)
@@ -92,11 +129,21 @@ def main() -> None:
         all_items.extend(parsed_items)
 
     filtered_items = sort_menu_items(filter_preview_items(all_items, args.meals, args.stations))
+    watchlist_terms = normalize_watchlist_terms(args.watchlist)
+    watchlist_hits = find_watchlist_hits(
+        all_items,
+        {
+            "meals": args.meals or [],
+            "watchlist": watchlist_terms,
+        },
+    )
+
     html_body = generate_html_email(
         menu_items=filtered_items,
         token="preview-token",
         start_date=start_date,
         days_ahead=args.days,
+        watchlist_hits=watchlist_hits,
     )
 
     if args.days == 1:
@@ -109,9 +156,10 @@ def main() -> None:
         )
 
     logging.info(
-        "Sending preview email to %s with %s items.",
+        "Sending preview email to %s with %s digest items and %s watchlist hits.",
         args.to,
         len(filtered_items),
+        len(watchlist_hits),
     )
     success = send_email(args.to, subject, html_body)
 

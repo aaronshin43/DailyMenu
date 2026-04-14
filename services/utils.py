@@ -122,6 +122,111 @@ def filter_menu_for_user(menu_items: List[Dict], preferences: Dict) -> List[Dict
         
     return filtered
 
+def get_watchlist_terms(preferences: Dict[str, Any]) -> List[str]:
+    """
+    Returns normalized watchlist terms from user preferences.
+    Matching is case-insensitive and whitespace-normalized.
+    """
+    raw_watchlist = preferences.get("watchlist", [])
+    if not isinstance(raw_watchlist, list):
+        return []
+
+    terms = []
+    seen = set()
+
+    for item in raw_watchlist:
+        if not isinstance(item, str):
+            continue
+
+        normalized = " ".join(item.split()).strip().lower()
+        if not normalized or normalized in seen:
+            continue
+
+        seen.add(normalized)
+        terms.append(normalized)
+
+    return terms
+
+def _normalize_word_forms(word: str) -> List[str]:
+    normalized = word.strip().lower()
+    if not normalized:
+        return []
+
+    variants = {normalized}
+
+    if len(normalized) > 3 and normalized.endswith("ies"):
+        variants.add(normalized[:-1])
+        variants.add(normalized[:-3] + "y")
+    elif len(normalized) > 4 and normalized.endswith(("ses", "xes", "zes", "ches", "shes")):
+        variants.add(normalized[:-2])
+    elif len(normalized) > 3 and normalized.endswith("s") and not normalized.endswith("ss"):
+        variants.add(normalized[:-1])
+
+    return [variant for variant in variants if variant]
+
+def _normalize_text_words(value: str) -> set[str]:
+    words = set()
+    for raw_word in value.split():
+        for variant in _normalize_word_forms(raw_word):
+            words.add(variant)
+    return words
+
+def _term_matches_item_words(term: str, item_words: set[str]) -> bool:
+    for term_word in term.split():
+        term_variants = _normalize_word_forms(term_word)
+        if not term_variants:
+            return False
+
+        if not any(variant in item_words for variant in term_variants):
+            return False
+
+    return True
+
+def find_watchlist_hits(menu_items: List[Dict], preferences: Dict[str, Any]) -> List[Dict]:
+    """
+    Finds watchlist matches across all stations while respecting selected meals.
+    Returns de-duplicated, sorted menu items that match at least one saved term.
+    """
+    watchlist_terms = get_watchlist_terms(preferences)
+    if not watchlist_terms:
+        return []
+
+    user_meals = {
+        meal.lower()
+        for meal in preferences.get("meals", [])
+        if isinstance(meal, str) and meal.strip()
+    }
+
+    hits = []
+    seen = set()
+
+    for item in menu_items:
+        item_meal = item.get("meal", "").lower()
+        if user_meals and item_meal not in user_meals:
+            continue
+
+        normalized_name = " ".join(str(item.get("name", "")).split()).lower()
+        item_words = _normalize_text_words(normalized_name)
+        if not item_words:
+            continue
+
+        if not any(_term_matches_item_words(term, item_words) for term in watchlist_terms):
+            continue
+
+        item_key = (
+            item.get("date", ""),
+            item.get("meal", ""),
+            item.get("station", ""),
+            item.get("name", ""),
+        )
+        if item_key in seen:
+            continue
+
+        seen.add(item_key)
+        hits.append(item)
+
+    return sort_menu_items(hits)
+
 def sort_menu_items(menu_items: List[Dict]) -> List[Dict]:
     """
     Sort menu items by date, meal order, station order, then item name.

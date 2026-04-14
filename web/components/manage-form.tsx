@@ -18,6 +18,7 @@ type PreferencesPayload = {
     meals: string[];
     stations: string[];
     days_ahead: 1 | 2;
+    watchlist: string[];
   };
 };
 
@@ -33,6 +34,13 @@ function toggleArrayValue(
   return current.filter((item) => item !== value);
 }
 
+function parseWatchlist(value: string): string[] {
+  return value
+    .split(/[\n,]+/)
+    .map((item) => item.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
 export function ManageForm({ token }: { token: string }) {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [email, setEmail] = useState("");
@@ -40,6 +48,7 @@ export function ManageForm({ token }: { token: string }) {
   const [meals, setMeals] = useState<string[]>([]);
   const [stations, setStations] = useState<string[]>([]);
   const [daysAhead, setDaysAhead] = useState<1 | 2>(1);
+  const [watchlistText, setWatchlistText] = useState("");
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<SubmitState>(null);
 
@@ -67,6 +76,7 @@ export function ManageForm({ token }: { token: string }) {
           setMeals(payload.preferences.meals);
           setStations(payload.preferences.stations);
           setDaysAhead(payload.preferences.days_ahead ?? 1);
+          setWatchlistText((payload.preferences.watchlist ?? []).join("\n"));
           setLoadState("ready");
         }
       } catch (error) {
@@ -101,7 +111,13 @@ export function ManageForm({ token }: { token: string }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ token, meals, stations, days_ahead: daysAhead }),
+        body: JSON.stringify({
+          token,
+          meals,
+          stations,
+          days_ahead: daysAhead,
+          watchlist: parseWatchlist(watchlistText),
+        }),
       });
 
       const payload = (await response.json()) as { error?: string; message?: string };
@@ -159,6 +175,21 @@ export function ManageForm({ token }: { token: string }) {
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="field-group">
+        <label htmlFor="manage_watchlist">Watchlist</label>
+        <textarea
+          id="manage_watchlist"
+          className="input textarea-input"
+          placeholder={"Ramen\nChicken tenders\nChocolate cake"}
+          value={watchlistText}
+          onChange={(event) => setWatchlistText(event.target.value)}
+          rows={4}
+        />
+        <div className="field-hint">
+          Watchlist matches are checked across all stations.
+        </div>
       </div>
 
       <div className="split-grid">

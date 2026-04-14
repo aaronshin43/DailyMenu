@@ -5,7 +5,13 @@ from typing import List, Dict, Any
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-from services.utils import fetch_menu_data, parse_menu, filter_menu_for_user, sort_menu_items
+from services.utils import (
+    fetch_menu_data,
+    parse_menu,
+    filter_menu_for_user,
+    find_watchlist_hits,
+    sort_menu_items,
+)
 from services.email_templates import generate_html_email
 from services.email_sender import send_email
 
@@ -101,22 +107,33 @@ def main():
              logging.warning(f"User {email} missing token. Skipping.")
              continue
 
-        filtered_items: List[Dict[str, Any]] = []
+        digest_items: List[Dict[str, Any]] = []
+        all_items_for_window: List[Dict[str, Any]] = []
         for offset in range(days_ahead):
             target_date = today + datetime.timedelta(days=offset)
-            filtered_items.extend(filter_menu_for_user(menu_by_date.get(target_date, []), prefs))
-        filtered_items = sort_menu_items(filtered_items)
+            current_date_items = menu_by_date.get(target_date, [])
+            all_items_for_window.extend(current_date_items)
+            digest_items.extend(filter_menu_for_user(current_date_items, prefs))
+
+        digest_items = sort_menu_items(digest_items)
+        watchlist_hits = find_watchlist_hits(all_items_for_window, prefs)
             
-        if not filtered_items:
+        if not digest_items and not watchlist_hits:
             logging.info(
-                "Skipping %s: No items match preferences across %s day(s).",
+                "Skipping %s: No digest items or watchlist hits across %s day(s).",
                 email,
                 days_ahead,
             )
             continue
             
         # 4. Generate & Send
-        html_body = generate_html_email(filtered_items, token, today, days_ahead)
+        html_body = generate_html_email(
+            digest_items,
+            token,
+            today,
+            days_ahead,
+            watchlist_hits=watchlist_hits,
+        )
         if days_ahead == 1:
             subject = f"Dickinson Daily Menu - {today.strftime('%b %d')}"
         else:
@@ -124,9 +141,10 @@ def main():
             subject = f"Dickinson Daily Menu - {today.strftime('%b %d')} to {end_date.strftime('%b %d')}"
         
         logging.info(
-            "Sending email to %s with %s items across %s day(s)...",
+            "Sending email to %s with %s digest items and %s watchlist hits across %s day(s)...",
             email,
-            len(filtered_items),
+            len(digest_items),
+            len(watchlist_hits),
             days_ahead,
         )
         send_email(email, subject, html_body)
