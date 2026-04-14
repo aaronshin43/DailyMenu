@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 
 import { MEALS, STATIONS, STATION_ORDER } from "@/lib/constants";
-import type { Meal, MenuItem } from "@/lib/types";
+import type { Meal, MenuFoodIcon, MenuItem, NutritionInfo, ServingSizeInfo } from "@/lib/types";
 
 const MENU_BASE_URL =
   "https://dickinson.api.nutrislice.com/menu/api/weeks/school/the-caf/menu-type";
@@ -20,6 +20,26 @@ type NutrisliceDay = {
 
 type NutrisliceResponse = {
   days?: NutrisliceDay[];
+};
+
+type NutrisliceFoodIcon = {
+  name?: string;
+  slug?: string | null;
+  help_text?: string | null;
+  custom_icon_url?: string | null;
+};
+
+type NutrisliceFood = {
+  name?: string;
+  ingredients?: string | null;
+  rounded_nutrition_info?: Partial<NutritionInfo> | null;
+  serving_size_info?: {
+    serving_size_amount?: string | null;
+    serving_size_unit?: string | null;
+  } | null;
+  icons?: {
+    food_icons?: NutrisliceFoodIcon[];
+  } | null;
 };
 
 export type GroupedStationMenu = {
@@ -73,6 +93,64 @@ function normalizeStationName(value: string): string {
   );
 
   return matchedStation ?? toDisplayTitle(trimmed);
+}
+
+function normalizeFoodIcons(food: NutrisliceFood | undefined): MenuFoodIcon[] {
+  const icons = food?.icons?.food_icons ?? [];
+  return icons
+    .filter((icon) => icon.custom_icon_url || icon.name)
+    .map((icon) => ({
+      name: icon.name?.trim() || "Food icon",
+      slug: icon.slug?.trim() || null,
+      helpText: icon.help_text?.trim() || null,
+      customIconUrl: icon.custom_icon_url?.trim() || null,
+    }));
+}
+
+function normalizeServingSize(food: NutrisliceFood | undefined): ServingSizeInfo | null {
+  const servingSize = food?.serving_size_info;
+  if (!servingSize) {
+    return null;
+  }
+
+  const amount = servingSize.serving_size_amount?.trim() || null;
+  const unit = servingSize.serving_size_unit?.trim() || null;
+
+  if (!amount && !unit) {
+    return null;
+  }
+
+  return { amount, unit };
+}
+
+function normalizeNutritionInfo(food: NutrisliceFood | undefined): NutritionInfo | null {
+  const nutrition = food?.rounded_nutrition_info;
+  if (!nutrition) {
+    return null;
+  }
+
+  const normalized: NutritionInfo = {
+    calories: nutrition.calories ?? null,
+    g_fat: nutrition.g_fat ?? null,
+    g_saturated_fat: nutrition.g_saturated_fat ?? null,
+    g_trans_fat: nutrition.g_trans_fat ?? null,
+    mg_cholesterol: nutrition.mg_cholesterol ?? null,
+    mg_sodium: nutrition.mg_sodium ?? null,
+    g_carbs: nutrition.g_carbs ?? null,
+    g_fiber: nutrition.g_fiber ?? null,
+    g_sugar: nutrition.g_sugar ?? null,
+    g_added_sugar: nutrition.g_added_sugar ?? null,
+    g_protein: nutrition.g_protein ?? null,
+    mg_calcium: nutrition.mg_calcium ?? null,
+    mg_iron: nutrition.mg_iron ?? null,
+    mg_potassium: nutrition.mg_potassium ?? null,
+    mg_vitamin_c: nutrition.mg_vitamin_c ?? null,
+    mg_vitamin_d: nutrition.mg_vitamin_d ?? null,
+  };
+
+  return Object.values(normalized).some((value) => value !== null)
+    ? normalized
+    : null;
 }
 
 function sortMenuItems(items: MenuItem[]): MenuItem[] {
@@ -136,7 +214,8 @@ async function fetchRawMenuForIsoDate(isoDate: string): Promise<MenuItem[]> {
           continue;
         }
 
-        const foodName = item.food?.name?.trim();
+        const food = item.food as NutrisliceFood | undefined;
+        const foodName = food?.name?.trim();
         if (!foodName) {
           continue;
         }
@@ -146,6 +225,11 @@ async function fetchRawMenuForIsoDate(isoDate: string): Promise<MenuItem[]> {
           meal,
           station: currentStation,
           name: foodName,
+          calories: food?.rounded_nutrition_info?.calories ?? null,
+          nutritionInfo: normalizeNutritionInfo(food),
+          ingredients: food?.ingredients?.trim() || null,
+          icons: normalizeFoodIcons(food),
+          servingSize: normalizeServingSize(food),
         });
       }
     }

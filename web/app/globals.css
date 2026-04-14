@@ -416,12 +416,54 @@ a {
   border-radius: 12px;
   background: rgba(255, 253, 249, 0.88);
   padding: 10px 12px;
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 10px;
+  align-content: start;
 }
 
 .menu-item-name {
   font-size: 0.96rem;
   line-height: 1.32;
   font-weight: 600;
+  min-height: 2.55em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.menu-item-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.menu-item-calories {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.menu-item-calories-empty {
+  visibility: hidden;
+}
+
+.menu-item-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+}
+
+.menu-item-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  opacity: 0.82;
 }
 
 .menu-station-stack {
@@ -484,6 +526,208 @@ a {
 
 .menu-station-details.is-open .menu-station-chevron {
   transform: rotate(90deg);
+}
+
+.menu-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(24, 18, 13, 0.48);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.menu-modal {
+  width: min(680px, 100%);
+  max-height: min(88vh, 880px);
+  overflow: auto;
+  border-radius: 22px;
+  border: 1px solid rgba(231, 216, 200, 0.95);
+  background: #fffaf4;
+  box-shadow: 0 28px 64px rgba(37, 24, 16, 0.22);
+}
+
+.menu-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid rgba(231, 216, 200, 0.85);
+}
+
+.menu-modal-kicker {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.menu-modal-title {
+  margin: 8px 0 0;
+  font-size: 1.5rem;
+  line-height: 1.15;
+}
+
+.menu-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.menu-modal-body {
+  display: grid;
+  gap: 18px;
+  padding: 20px 24px 24px;
+}
+
+.menu-modal-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.menu-modal-icon-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(231, 216, 200, 0.95);
+  background: #fff7ed;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+.menu-modal-icon-image {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.nutrition-panel {
+  border: 1px solid #6e6a64;
+  background: #fff;
+  color: #111;
+  padding: 14px 14px 10px;
+}
+
+.nutrition-panel-title {
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+}
+
+.nutrition-panel-serving-row {
+  margin-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.nutrition-panel-amount {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.nutrition-panel-calories-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.nutrition-panel-calories-label {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.nutrition-panel-calories-value {
+  font-size: 2.65rem;
+  font-weight: 900;
+  line-height: 0.9;
+}
+
+.nutrition-panel-rule {
+  height: 1px;
+  background: #6e6a64;
+  margin: 8px 0 10px;
+}
+
+.nutrition-panel-rule-strong {
+  height: 8px;
+  background: #4d4d4d;
+  margin: 6px 0 6px;
+}
+
+.nutrition-panel-rule-split {
+  margin: 6px 0 4px;
+}
+
+.nutrition-panel-dv {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+  color: #595959;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.nutrition-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 0;
+  border-bottom: 1px solid #9a9792;
+  font-size: 0.96rem;
+}
+
+.nutrition-row:last-child {
+  border-bottom: 0;
+}
+
+.nutrition-row-no-border {
+  border-bottom: 0;
+}
+
+.nutrition-row-strong {
+  font-weight: 800;
+}
+
+.nutrition-row-indent {
+  padding-left: 18px;
+  color: #525252;
+  font-size: 0.92rem;
+}
+
+.menu-modal-section {
+  display: grid;
+  gap: 8px;
+}
+
+.menu-modal-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+.menu-modal-section-copy {
+  color: var(--text);
+  line-height: 1.5;
 }
 
 .skeleton-block {
@@ -624,5 +868,23 @@ a {
   .menu-filter-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .menu-modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .menu-modal {
+    width: 100%;
+    max-height: 90vh;
+    border-radius: 24px 24px 0 0;
+    border-bottom: 0;
+  }
+
+  .menu-modal-header,
+  .menu-modal-body {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 }
