@@ -1,5 +1,5 @@
 -- Run as postgres. Create tables and protect them in the same transaction.
--- Also install api_rate_limits.sql before deploying the subscription API.
+-- Also install api_rate_limits.sql and confirmation_lifecycle.sql before deploying the subscription API.
 BEGIN;
 
 -- Create the users table

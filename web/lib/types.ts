@@ -56,3 +56,8 @@ export type UserRecord = {
   is_active: boolean;
   preferences: UserPreferences | null;
 };
+
+// Server-only signup result; never expose this token in preferences responses.
+export type PreparedSubscription = UserRecord & {
+  confirmation_token: string | null;
+};

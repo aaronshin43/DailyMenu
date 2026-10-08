@@ -218,6 +218,45 @@ It uses the Python server key and sends 12 simultaneous RPC requests with
 reversed rule orders; exactly one reservation must succeed. It creates two
 random test counters that expire normally, without subscriber writes or emails.
 
+### Confirmation link lifecycle
+
+Run `database/confirmation_lifecycle.sql` as `postgres` **before** deploying the
+updated web API. New databases require `schema.sql`, `api_rate_limits.sql`, and
+this migration. It adds two nullable columns, server-only RPCs, and a revocation
+trigger; it preserves every existing subscription, preference and management token.
+The old web version remains compatible during installation, and the new
+confirmation behavior takes effect after the web deployment.
+
+`users.token` remains the long-lived management/unsubscribe token used in daily
+emails. Confirmation uses a separate UUID with a 24-hour database expiry.
+Resending replaces only the confirmation link; resubscribing preserves existing
+management links and requires a fresh confirmation. Signup cannot overwrite a
+concurrent activation or the preferences of an already active user.
+
+Confirmation locks the subscriber row and checks the expiry using the database
+clock. Retries/double-clicks return success while the same confirmation is active
+and unexpired, without reactivating again. Unsubscribe atomically clears the
+confirmation token and expiry, including for pending users, so an old link can
+never reactivate an unsubscribed user. Expired/replaced/revoked/legacy confirmation
+links return 410 with a link to request a new confirmation email. Management
+tokens are never accepted by the confirmation API.
+
+Old confirmation emails used management tokens. After deployment, previously
+unconfirmed users must subscribe again to receive a fresh confirmation link.
+Already active users continue receiving emails; their older manage/unsubscribe
+links keep working. No existing user is automatically activated or deactivated.
+
+Run `tests/test_confirmation_lifecycle.sql` as `postgres` for token separation,
+expiry, resend/retry, unsubscribe revocation, active-signup race and role-access
+checks. All synthetic user writes roll back. `cd web && npm test` verifies API
+responses and email token selection using mock SMTP.
+
+Optional live check: `python tests/check_confirmation_lifecycle.py` uses the
+server key to exercise eight concurrent confirmations and an unsubscribe race.
+It creates one uniquely named synthetic subscriber and deletes it in `finally`;
+it never sends email. To also test the web routes, start a local production
+build and pass `--base-url http://127.0.0.1:3001`. This flag accepts localhost only.
+
 ### Daily schedule (Supabase Cron)
 
 GitHub's `schedule` event does not guarantee on-time execution. In this repository,
