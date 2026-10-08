@@ -14,6 +14,7 @@ export function generateConfirmationEmail(token: string): string {
         <div style="max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
           <h2 style="color: #d32f2f;">Welcome to Dickinson Daily Menu</h2>
           <p>Please confirm your subscription to start receiving daily menus.</p>
+          <p>This link expires in 24 hours. If you request another confirmation email, use the newest link.</p>
           <div style="margin: 30px 0;">
             <a href="${confirmUrl}" style="background-color: #d32f2f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
               Confirm Subscription

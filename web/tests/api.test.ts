@@ -8,6 +8,7 @@ import { normalizePreferences } from "../lib/validators";
 import type { UserRecord } from "../lib/types";
 
 const token = "971f3aef-d3ec-42fa-8869-8706238f1646";
+const confirmationToken = "f8354a4b-8914-4a34-8b9c-a553ad30d6c4";
 const preferences = { meals: ["lunch" as const], stations: [], days_ahead: 2 as const, watchlist: ["ramen"] };
 const payload = { email: " Student@Example.invalid ", ...preferences };
 const user: UserRecord = { email: "student@example.invalid", token, is_active: false, preferences };
@@ -24,14 +25,15 @@ function fixture(overrides: Partial<Dependencies> = {}) {
     getUserByEmail: async () => { events.push("lookup-email"); return null; },
     getUserByToken: async () => { events.push("lookup-token"); return user; },
     upsertPendingUser: async (email, prefs) => {
-      events.push("upsert"); assert.equal(email, user.email); assert.deepEqual(prefs, preferences); return user;
+      events.push("upsert"); assert.equal(email, user.email); assert.deepEqual(prefs, preferences);
+      return { ...user, confirmation_token: confirmationToken };
     },
     updatePreferencesByToken: async () => { events.push("update"); return user; },
     confirmUserByToken: async () => { events.push("confirm"); return { ...user, is_active: true }; },
     deactivateUserByToken: async () => { events.push("unsubscribe"); return user; },
     sendEmail: async (email) => { events.push("send"); assert.equal(email, user.email); },
-    generateConfirmationEmail: () => "<p>confirmation</p>",
-    generateManageLinkEmail: () => "<p>manage</p>",
+    generateConfirmationEmail: (value) => { assert.equal(value, confirmationToken); return "<p>confirmation</p>"; },
+    generateManageLinkEmail: (value) => { assert.equal(value, token); return "<p>manage</p>"; },
     ...overrides,
   };
   return { events, deps, api: createApiHandlers(deps) };
@@ -63,6 +65,48 @@ test("existing active user gets manage link without token rotation or upsert", a
 test("inactive subscriber retains resubscribe flow", async () => {
   const { api } = fixture({ getUserByEmail: async () => user });
   assert.equal((await (await api.subscribe(post(payload))).json()).mode, "resubscribe");
+});
+
+test("concurrent activation during signup returns management link and preserves active subscription", async () => {
+  const { api, events } = fixture({ getUserByEmail: async () => user,
+    upsertPendingUser: async () => ({ ...user, is_active: true, confirmation_token: null }) });
+  const response = await api.subscribe(post(payload));
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).mode, "manage-link");
+  assert.deepEqual(events, ["ip", "email-limit", "send"]);
+});
+
+test("missing confirmation token fails before SMTP and does not expose backend details", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const { api, events } = fixture({ upsertPendingUser: async () => ({ ...user, confirmation_token: null }) });
+  const response = await api.subscribe(post(payload));
+  assert.equal(response.status, 500);
+  assert.ok(!(await response.text()).includes("Missing confirmation token"));
+  assert.ok(!events.includes("send"));
+});
+
+test("revoked, expired, replaced and legacy confirmation tokens return 410 with recovery guidance", async () => {
+  const { api, events } = fixture({ confirmUserByToken: async () => null });
+  const response = await api.confirm(post({ token }, "confirm"));
+  assert.equal(response.status, 410);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.match((await response.json()).error, /Subscribe again/);
+  assert.deepEqual(events, ["ip", "token-write"]);
+});
+
+test("confirmation retries can succeed without exposing either bearer token", async () => {
+  const { api } = fixture({ confirmUserByToken: async (value) => {
+    assert.equal(value, confirmationToken);
+    return { ...user, is_active: true };
+  } });
+  for (let i = 0; i < 2; i++) {
+    const response = await api.confirm(post({ token: confirmationToken }, "confirm"));
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    assert.equal(result.email, user.email);
+    assert.ok(!JSON.stringify(result).includes(token));
+    assert.ok(!JSON.stringify(result).includes(confirmationToken));
+  }
 });
 
 test("email cooldown returns 429 + Retry-After before user mutation or send", async () => {
@@ -175,7 +219,7 @@ test("token write/read denial precedes user lookup/mutation", async () => {
   }
 });
 
-test("invalid token types are 400; valid missing tokens retain 404", async () => {
+test("invalid token types are 400; missing manage tokens are 404 and confirmation tokens are 410", async () => {
   for (const method of ["updatePreferences", "confirm", "unsubscribe"] as const) {
     for (const value of [null, 1, [], {}, "invalid", undefined]) {
       const { api, events } = fixture();
@@ -187,7 +231,7 @@ test("invalid token types are 400; valid missing tokens retain 404", async () =>
     updatePreferencesByToken: async () => null, deactivateUserByToken: async () => null });
   assert.equal((await api.getPreferences(new Request(`http://localhost/api/preferences?token=${token}`))).status, 404);
   for (const method of ["updatePreferences", "confirm", "unsubscribe"] as const) {
-    assert.equal((await api[method](post({ token, ...preferences }))).status, 404);
+    assert.equal((await api[method](post({ token, ...preferences }))).status, method === "confirm" ? 410 : 404);
   }
 });
 

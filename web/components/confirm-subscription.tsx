@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type State = {
   tone: "error" | "success";
   message: string;
+  canResubscribe?: boolean;
 } | null;
 
 export function ConfirmSubscription({ token }: { token: string }) {
@@ -29,7 +31,11 @@ export function ConfirmSubscription({ token }: { token: string }) {
         };
 
         if (!response.ok) {
-          throw new Error(payload.error ?? "Unable to confirm subscription.");
+          if (!cancelled) {
+            setState({ tone: "error", message: payload.error ?? "Unable to confirm subscription.",
+              canResubscribe: response.status === 410 });
+          }
+          return;
         }
 
         if (!cancelled) {
@@ -64,5 +70,8 @@ export function ConfirmSubscription({ token }: { token: string }) {
     return <div className="message-box info">Confirming your subscription...</div>;
   }
 
-  return <div className={`message-box ${state.tone}`}>{state.message}</div>;
+  return <div className={`message-box ${state.tone}`}>
+    {state.message}
+    {state.canResubscribe && <p><Link href="/">Request a new confirmation email</Link></p>}
+  </div>;
 }

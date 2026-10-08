@@ -27,6 +27,11 @@ Agent-specific notes for this repository. For setup, commands, env vars, and dep
   - `/manage?token=...`
   - `/unsubscribe?token=...`
 - There is no login/session system
+- `users.token` is the long-lived manage/unsubscribe token, preserved on resend/resubscribe
+- Confirmation uses a separate `confirmation_token` with a 24-hour database expiry
+  - Signup and confirmation use server-only RPCs in `database/confirmation_lifecycle.sql`
+  - Unsubscribe revokes confirmation even for an already inactive/pending user
+  - Confirmation retries are idempotent while active and unexpired
 - `/menu` is public and not personalized
 - `watchlist` matching:
   - respects selected `meals`
