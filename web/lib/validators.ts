@@ -1,13 +1,15 @@
 import { DAYS_AHEAD_OPTIONS, MEALS, STATIONS } from "@/lib/constants";
 import type { Meal, UserPreferences } from "@/lib/types";
+import { ValidationError } from "@/lib/api-errors";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function normalizeStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
+function normalizeStringArray(value: unknown, field: string): string[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new ValidationError(`${field} must be an array of strings.`);
   }
 
   return value
@@ -17,6 +19,10 @@ function normalizeStringArray(value: unknown): string[] {
 }
 
 function normalizeWatchlist(value: unknown): string[] {
+  if (value !== undefined && typeof value !== "string"
+      && (!Array.isArray(value) || value.some((item) => typeof item !== "string"))) {
+    throw new ValidationError("watchlist must be text or an array of strings.");
+  }
   const rawItems = Array.isArray(value)
     ? value
     : typeof value === "string"
@@ -49,7 +55,7 @@ function normalizeWatchlist(value: unknown): string[] {
 }
 
 export function isValidEmail(email: string): boolean {
-  return EMAIL_REGEX.test(email.trim());
+  return email.length <= 254 && EMAIL_REGEX.test(email.trim());
 }
 
 export function isValidUuid(token: string): boolean {
@@ -57,17 +63,16 @@ export function isValidUuid(token: string): boolean {
 }
 
 export function normalizePreferences(input: unknown): UserPreferences {
-  const source = typeof input === "object" && input !== null ? input : {};
-  const rawMeals = normalizeStringArray((source as { meals?: unknown }).meals);
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new ValidationError("Preferences must be a JSON object.");
+  }
+  const source = input as Record<string, unknown>;
+  const rawMeals = normalizeStringArray(source.meals, "meals");
   const rawStations = normalizeStringArray(
-    (source as { stations?: unknown }).stations,
+    source.stations, "stations",
   );
-  const rawWatchlist =
-    (source as { watchlist?: unknown; watchlistText?: unknown }).watchlist ??
-    (source as { watchlist?: unknown; watchlistText?: unknown }).watchlistText;
-  const rawDaysAhead =
-    (source as { days_ahead?: unknown; daysAhead?: unknown }).days_ahead ??
-    (source as { days_ahead?: unknown; daysAhead?: unknown }).daysAhead;
+  const rawWatchlist = source.watchlist !== undefined ? source.watchlist : source.watchlistText;
+  const rawDaysAhead = source.days_ahead !== undefined ? source.days_ahead : source.daysAhead;
 
   const meals = [...new Set(rawMeals)]
     .map((meal) => meal.toLowerCase())
@@ -79,18 +84,40 @@ export function normalizePreferences(input: unknown): UserPreferences {
   );
   const watchlist = normalizeWatchlist(rawWatchlist);
 
+  if (rawMeals.some((meal) => !(MEALS as readonly string[]).includes(meal.toLowerCase()))) {
+    throw new ValidationError("Unknown meal selection.");
+  }
+  if (rawStations.some((station) => !(STATIONS as readonly string[]).includes(station))) {
+    throw new ValidationError("Unknown station selection.");
+  }
+
   if (meals.length === 0) {
-    throw new Error("Select at least one meal.");
+    throw new ValidationError("Select at least one meal.");
   }
 
   if (stations.length === 0 && watchlist.length === 0) {
-    throw new Error("Select at least one station or add watchlist items.");
+    throw new ValidationError("Select at least one station or add watchlist items.");
   }
 
-  const parsedDaysAhead = Number(rawDaysAhead ?? 1);
-  const days_ahead = DAYS_AHEAD_OPTIONS.includes(parsedDaysAhead as 1 | 2)
-    ? (parsedDaysAhead as 1 | 2)
-    : 1;
+  if (rawDaysAhead !== undefined && (typeof rawDaysAhead !== "number"
+      || !DAYS_AHEAD_OPTIONS.includes(rawDaysAhead as 1 | 2))) {
+    throw new ValidationError("days_ahead must be 1 or 2.");
+  }
+  const days_ahead = (rawDaysAhead ?? 1) as 1 | 2;
 
   return { meals, stations, days_ahead, watchlist };
+}
+
+export function parseEmail(value: unknown): string {
+  if (typeof value !== "string" || !isValidEmail(value.trim())) {
+    throw new ValidationError("Enter a valid email address.");
+  }
+  return value.trim().toLowerCase();
+}
+
+export function parseToken(value: unknown): string {
+  if (typeof value !== "string" || !isValidUuid(value)) {
+    throw new ValidationError("Invalid token.");
+  }
+  return value.trim().toLowerCase();
 }

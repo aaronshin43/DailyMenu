@@ -13,6 +13,9 @@ export async function sendEmail(
     host: smtp.host,
     port: smtp.port,
     secure: false,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 30_000,
     auth: {
       user: smtp.user,
       pass: smtp.pass,
