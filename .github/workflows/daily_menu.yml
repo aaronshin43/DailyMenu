@@ -10,7 +10,7 @@ on:
         required: false
         type: string
       validation_only:
-        description: 'Run offline checks without sending emails'
+        description: 'Run offline and database access checks without sending emails'
         required: false
         type: boolean
         default: false
@@ -44,6 +44,13 @@ jobs:
       - name: Validate sender without sending emails
         if: ${{ inputs.validation_only }}
         run: python -m unittest discover -s tests -p 'test_delivery_*.py'
+
+      - name: Verify server database access
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          # This must be the server-side service_role key, never the anon key.
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python send_menu.py --check-db-access
 
       - name: Run Send Menu Script
         if: ${{ !inputs.validation_only }}

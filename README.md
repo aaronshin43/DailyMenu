@@ -32,7 +32,7 @@ Create a root `.env` or export these variables:
 
 - `SITE_URL`
 - `SUPABASE_URL`
-- `SUPABASE_KEY`
+- `SUPABASE_KEY` — server-side `service_role` key, never the `anon`/publishable key
 - `SMTP_EMAIL`
 - `SMTP_PASSWORD`
 - `SMTP_SERVER`
@@ -67,7 +67,7 @@ Create `web/.env.local` from `web/.env.example` and set:
 
 - `SITE_URL`
 - `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` — server-side `service_role` key
 - `SMTP_EMAIL`
 - `SMTP_PASSWORD`
 - `SMTP_SERVER`
@@ -115,13 +115,47 @@ Set these repository secrets:
 
 - `SITE_URL`
 - `SUPABASE_URL`
-- `SUPABASE_KEY`
+- `SUPABASE_KEY` — server-side `service_role` key, never the `anon`/publishable key
 - `SMTP_EMAIL`
 - `SMTP_PASSWORD`
 - `SMTP_SERVER`
 - `SMTP_PORT`
 
 The Python sender uses `SITE_URL` when generating manage/unsubscribe links in daily emails.
+
+### Server-only database access
+
+`public.users` contains private email addresses, preferences, and bearer tokens.
+`public.keep_alive` is used only by the backend sender. Both tables must have
+RLS enabled and no table/column/sequence privileges for `PUBLIC`, `anon`, or
+`authenticated`. The application validates confirmation/manage/unsubscribe tokens
+in its server routes; it does not use Supabase Auth sessions or `auth.uid()` policies.
+Server-side `service_role` bypasses RLS and retains the required database access.
+See [Supabase RLS and service keys](https://supabase.com/docs/guides/database/postgres/row-level-security).
+
+For a new database, run `database/schema.sql` as `postgres`. For an existing
+database, use this order to avoid breaking the daily sender:
+
+1. Set the Python `.env` and GitHub repository secret `SUPABASE_KEY` to the
+   project's **service_role** key. Verify Vercel uses the same project's server
+   key in `SUPABASE_SERVICE_ROLE_KEY`. Keep these keys in server secrets only:
+   never put them in `NEXT_PUBLIC_*`, source files, browser code, or logs.
+2. Run `python send_menu.py --check-db-access` with the server environment.
+   This performs zero-row HEAD reads only; it does not fetch subscribers,
+   update the heartbeat, fetch menus, or send emails.
+3. Execute `database/protect_server_tables.sql` in the Supabase SQL Editor as
+   `postgres`. It changes permissions only; subscriber rows and tokens are preserved.
+4. Execute `tests/test_database_access.sql` as `postgres`. It checks RLS,
+   forbidden public-role operations, and server subscription/token/preference/
+   unsubscribe/heartbeat operations using synthetic rows. All writes roll back.
+5. Once the updated workflow is merged, trigger it with `validation_only=true`.
+   It runs the offline tests plus the same database HEAD checks using actual
+   GitHub secrets, without sending emails. Then check the next normal daily run.
+
+The workflow checks database access before every delivery. A wrong/revoked key
+fails the job instead of reporting an empty subscriber list as a successful send.
+New tables in `public` need their own RLS and grant review; this migration
+protects the two application tables and the heartbeat sequence.
 
 ### Daily schedule (Supabase Cron)
 
@@ -207,6 +241,9 @@ To verify a GitHub dispatch without emailing subscribers, select
 ```bash
 gh workflow run daily_menu.yml --ref main -f validation_only=true
 ```
+
+The validation workflow also checks access to Supabase using the repository's
+server key; unlike the local unit tests, that check requires network access.
 
 Supabase dispatch validation can use the same input with `net.http_post`. Keep
 `validation_only` absent or false in the daily Cron payload.

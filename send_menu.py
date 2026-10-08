@@ -59,6 +59,10 @@ def main():
     parser = argparse.ArgumentParser(description="Send daily menu emails.")
     parser.add_argument("--date", type=str, help="YYYY-MM-DD date to fetch menu for (default: today)")
     parser.add_argument("--email", type=str, help="Send to a specific email address only")
+    parser.add_argument(
+        "--check-db-access", action="store_true",
+        help="Check server database access without fetching subscribers or sending emails",
+    )
     args = parser.parse_args()
     started_at = time.monotonic()
     try:
@@ -83,6 +87,14 @@ def main():
         raise SystemExit(1)
 
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    if args.check_db_access:
+        # Zero-row reads check grants through the actual Data API without
+        # retrieving subscriber emails, tokens, or preferences.
+        for table in ("users", "keep_alive"):
+            supabase.table(table).select("*", head=True).limit(0).execute()
+        logging.info("Database access check passed for users and keep_alive; no emails sent.")
+        return
 
     # 1. Send Heartbeat (Keep-Alive)
     try:
