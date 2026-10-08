@@ -1,6 +1,8 @@
 import os
 import argparse
 import datetime
+import time
+from zoneinfo import ZoneInfo
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 from supabase import create_client, Client
@@ -21,6 +23,15 @@ load_dotenv()
 # Configure Logging
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+MENU_TIMEZONE = ZoneInfo("America/New_York")
+
+
+def get_menu_date(date_arg: str = None) -> datetime.date:
+    """Use the cafeteria's date, independent of the runner's timezone."""
+    if date_arg:
+        return datetime.datetime.strptime(date_arg, "%Y-%m-%d").date()
+    return datetime.datetime.now(MENU_TIMEZONE).date()
 
 def get_users(supabase: Client, target_email: str = None):
     """Fetch users from Supabase. Optionally filter by a specific email."""
@@ -49,6 +60,19 @@ def main():
     parser.add_argument("--date", type=str, help="YYYY-MM-DD date to fetch menu for (default: today)")
     parser.add_argument("--email", type=str, help="Send to a specific email address only")
     args = parser.parse_args()
+    started_at = time.monotonic()
+    try:
+        today = get_menu_date(args.date)
+    except ValueError:
+        parser.error("--date must be a valid YYYY-MM-DD date")
+
+    local_now = datetime.datetime.now(MENU_TIMEZONE)
+    expected_at = datetime.datetime.combine(today, datetime.time(7), tzinfo=MENU_TIMEZONE)
+    logging.info(
+        "Sender started at %s; menu date=%s; minutes since scheduled 07:00=%s",
+        local_now.isoformat(), today,
+        round((local_now - expected_at).total_seconds() / 60, 1),
+    )
 
     # 0. Setup Supabase
     SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -56,7 +80,7 @@ def main():
     
     if not SUPABASE_URL or not SUPABASE_KEY:
         logging.error("Supabase credentials missing. Check .env or secrets.")
-        return
+        raise SystemExit(1)
 
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -68,12 +92,6 @@ def main():
         logging.info("Heartbeat sent successfully.")
     except Exception as e:
         logging.error(f"Failed to send heartbeat: {e}")
-
-    # 2. Setup Date
-    if args.date:
-        today = datetime.datetime.strptime(args.date, "%Y-%m-%d").date()
-    else:
-        today = datetime.date.today()
 
     # 3. Process Users
     users = get_users(supabase, args.email)
@@ -97,6 +115,8 @@ def main():
             target_date,
         )
 
+    sent_count = 0
+    failed_count = 0
     for user in users:
         email = user["email"]
         token = user.get("token")
@@ -147,7 +167,18 @@ def main():
             len(watchlist_hits),
             days_ahead,
         )
-        send_email(email, subject, html_body)
+        if send_email(email, subject, html_body):
+            sent_count += 1
+        else:
+            failed_count += 1
+
+    logging.info(
+        "Delivery finished at %s: sent=%s, failed=%s, elapsed=%.1fs",
+        datetime.datetime.now(MENU_TIMEZONE).isoformat(),
+        sent_count, failed_count, time.monotonic() - started_at,
+    )
+    if failed_count:
+        raise SystemExit(1)
 
 if __name__ == "__main__":
     main()

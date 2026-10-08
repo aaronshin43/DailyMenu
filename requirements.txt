@@ -1,4 +1,4 @@
 supabase
 requests
 python-dotenv
-pandas
+tzdata
