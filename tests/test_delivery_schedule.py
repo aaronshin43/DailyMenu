@@ -90,6 +90,32 @@ class DeliveryScheduleTests(unittest.TestCase):
         smtp.assert_called_once_with("smtp.example.com", 587, timeout=30)
         smtp.return_value.__enter__.return_value.sendmail.assert_called_once()
 
+    def test_database_check_reads_zero_rows_and_does_not_send_or_write(self):
+        with patch.dict(os.environ, {"SUPABASE_URL": "https://example.com", "SUPABASE_KEY": "test"}), \
+             patch.object(sys, "argv", ["send_menu.py", "--check-db-access"]), \
+             patch.object(send_menu, "create_client") as client, \
+             patch.object(send_menu, "get_users") as users, \
+             patch.object(send_menu, "send_email") as mail:
+            send_menu.main()
+        database = client.return_value
+        self.assertEqual([call.args[0] for call in database.table.call_args_list], ["users", "keep_alive"])
+        self.assertEqual(database.table.return_value.select.call_count, 2)
+        database.table.return_value.select.assert_called_with("*", head=True)
+        database.table.return_value.select.return_value.limit.assert_called_with(0)
+        database.table.return_value.upsert.assert_not_called()
+        users.assert_not_called()
+        mail.assert_not_called()
+
+    def test_database_check_propagates_permission_failure(self):
+        with patch.dict(os.environ, {"SUPABASE_URL": "https://example.com", "SUPABASE_KEY": "test"}), \
+             patch.object(sys, "argv", ["send_menu.py", "--check-db-access"]), \
+             patch.object(send_menu, "create_client") as client, \
+             patch.object(send_menu, "send_email") as mail:
+            client.return_value.table.return_value.select.return_value.limit.return_value.execute.side_effect = PermissionError("denied")
+            with self.assertRaises(PermissionError):
+                send_menu.main()
+        mail.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
