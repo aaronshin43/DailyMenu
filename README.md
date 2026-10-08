@@ -201,6 +201,16 @@ Offline sender/scheduler checks (no emails are sent):
 python -m unittest discover -s tests -p "test_delivery_*.py"
 ```
 
+To verify a GitHub dispatch without emailing subscribers, select
+`validation_only` in **Run workflow**, or run:
+
+```bash
+gh workflow run daily_menu.yml --ref main -f validation_only=true
+```
+
+Supabase dispatch validation can use the same input with `net.http_post`. Keep
+`validation_only` absent or false in the daily Cron payload.
+
 ## Notes
 
 - `services/utils.py` contains the Nutrislice fetch/parsing logic and the station list

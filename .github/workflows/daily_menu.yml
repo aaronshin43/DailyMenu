@@ -9,6 +9,11 @@ on:
         description: 'Menu date (YYYY-MM-DD); blank uses the current New York date'
         required: false
         type: string
+      validation_only:
+        description: 'Run offline checks without sending emails'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -36,7 +41,12 @@ jobs:
         run: |
           python -m pip install -r requirements.txt
 
+      - name: Validate sender without sending emails
+        if: ${{ inputs.validation_only }}
+        run: python -m unittest discover -s tests -p 'test_delivery_*.py'
+
       - name: Run Send Menu Script
+        if: ${{ !inputs.validation_only }}
         env:
           MENU_DATE: ${{ inputs.menu_date }}
           PYTHONUNBUFFERED: '1'
