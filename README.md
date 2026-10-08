@@ -84,6 +84,8 @@ Validation commands:
 
 ```bash
 cd web
+npm test
+npm run typecheck
 npm run lint
 npm run build
 ```
@@ -156,6 +158,65 @@ The workflow checks database access before every delivery. A wrong/revoked key
 fails the job instead of reporting an empty subscriber list as a successful send.
 New tables in `public` need their own RLS and grant review; this migration
 protects the two application tables and the heartbeat sequence.
+
+### Subscription API limits
+
+Before deploying the API routes, run `database/api_rate_limits.sql` as `postgres`
+in the Supabase SQL Editor. New databases need both `database/schema.sql` and
+this migration; enable `pg_cron` first (also required by the daily scheduler).
+The migration is additive and safe to re-run. Install it **before** merging
+the web change: unavailable rate-limit storage returns 503 and blocks user
+mutations/email sends rather than letting unprotected requests through.
+Rate-limit RPC requests have a five-second timeout.
+
+Limits are shared by every Vercel instance using one atomic Supabase RPC:
+
+| Request budget | Limit |
+| --- | --- |
+| Subscribe, per client IP (including invalid requests) | 30 requests / 10 minutes |
+| Confirmation or manage-link email, per normalized email across all IPs | 3 attempts / hour |
+| Email resend, shared by both email types | 1 attempt / 60 seconds |
+| Confirm/preferences/unsubscribe, combined per client IP | 120 requests / minute |
+| Preferences GET, per token | 60 requests / minute |
+| Confirm/preferences POST/unsubscribe, combined per token | 20 requests / minute |
+
+Windows start at the first admitted request. Email cooldown and hourly budgets
+are reserved together before token changes or SMTP, so concurrent requests
+cannot both send. Denied requests do not extend the window or consume other
+email budgets. Reservations are retained if lookup/SMTP fails, since an SMTP
+failure can occur after acceptance; wait before trying again. SMTP connection/
+greeting/socket timeouts prevent indefinitely hanging requests. Shared campus
+IPs can reach the IP budget collectively; tune the constants in
+`web/lib/rate-limit.ts` if normal usage requires a higher budget.
+
+429 responses include `Retry-After` in seconds and a wait message. Malformed
+JSON/field types/preferences return 400, bodies above 16 KiB return 413, and
+backend failures return generic 500/503 messages. Token responses use
+`Cache-Control: no-store`; `/menu` remains public and is not rate limited here.
+
+The private `api_limits.buckets` table has RLS and no public client grants.
+Only `service_role` can call `consume_api_limits`; it is a security-invoker
+function. Email/IP/token identifiers are HMACs using the existing server key;
+no additional service or secret is needed. Key rotation resets the effective
+budgets. The hourly `daily-menu-api-limit-cleanup` Cron removes records expired
+for over one day, retaining an expired record for at most about 25 hours.
+
+Production IP identity uses Vercel's `x-vercel-forwarded-for` only when
+`VERCEL=1`. Local/self-hosted instances ignore forwarded headers and use a
+shared `local` bucket; missing/invalid Vercel IPs share `unknown`. Configure a
+trusted proxy adapter before using this code on a different host.
+See [Vercel request headers](https://vercel.com/docs/headers/request-headers).
+
+Run `tests/test_api_rate_limits.sql` as `postgres` to verify permissions,
+exact thresholds, expiration, atomic budgets, and retry timing; all fixtures
+roll back. `cd web && npm test` tests handlers/validation/failure behavior with
+mock SMTP and no credentials. The `Web API checks` workflow runs these tests
+and TypeScript checks on relevant PRs and main pushes, without server secrets.
+
+Optional live concurrency check: `python tests/check_api_rate_limit_concurrency.py`.
+It uses the Python server key and sends 12 simultaneous RPC requests with
+reversed rule orders; exactly one reservation must succeed. It creates two
+random test counters that expire normally, without subscriber writes or emails.
 
 ### Daily schedule (Supabase Cron)
 
