@@ -348,6 +348,32 @@ server key; unlike the local unit tests, that check requires network access.
 Supabase dispatch validation can use the same input with `net.http_post`. Keep
 `validation_only` absent or false in the daily Cron payload.
 
+### Menu dialog checks
+
+The public `/menu` uses a native modal dialog for item details. Opening it locks
+the background at its current scroll position; only the details body scrolls,
+while the title and 44px close button stay visible. Closing by Escape, the close
+button or a backdrop tap restores the page position and focus to the item card.
+Tab and Shift+Tab cycle inside the dialog. Meal buttons expose their selected
+state with `aria-pressed`; the same highlight applies to every selected meal.
+
+For manual regression checks, use a long item with nutrition and ingredients:
+
+1. Scroll down the menu, open an item, and scroll its details to the bottom and
+   back to the top. The background and close button must not move.
+2. Check Tab/Shift+Tab, Escape, close-button and backdrop dismissal. The original
+   item must regain focus without moving the page; reopening starts at the top.
+3. Check short/empty details and long ingredient text at 320–390px portrait,
+   landscape and desktop widths. Rotate/resize while open; the body must stay
+   scrollable and the close button reachable.
+4. On iOS Safari and Android Chrome, repeat with touch swipes at both scroll
+   boundaries and changing browser bars. Check the bottom safe area and position
+   restoration after dismissal. Browser viewport checks do not replace physical
+   device checks.
+
+No database migration, new dependency or environment variable is required for
+the dialog changes.
+
 ## Notes
 
 - `services/utils.py` contains the Nutrislice fetch/parsing logic and the station list
