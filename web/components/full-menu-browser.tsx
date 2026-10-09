@@ -7,6 +7,7 @@ import {
   startTransition,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
 } from "react";
@@ -94,6 +95,10 @@ export function FullMenuBrowser({
   const [isPending, startNavTransition] = useTransition();
   const [selectedMeal, setSelectedMeal] = useState<Meal>("lunch");
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const itemTriggerRef = useRef<HTMLButtonElement>(null);
+  const backdropPointerDownRef = useRef(false);
   const [openStations, setOpenStations] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
       meals.flatMap((mealGroup) =>
@@ -117,6 +122,51 @@ export function FullMenuBrowser({
     selectedItemKey === null
       ? null
       : visibleItems.find((item) => getItemKey(item) === selectedItemKey) ?? null;
+  const isItemModalOpen = selectedItem !== null;
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!isItemModalOpen || !dialog) return;
+
+    const trigger = itemTriggerRef.current;
+    const { scrollX, scrollY } = window;
+    const body = document.body;
+    const root = document.documentElement;
+    const properties = ["position", "top", "left", "width", "overflow", "padding-right"];
+    const previousBody = properties.map((property) => ({ property,
+      value: body.style.getPropertyValue(property), priority: body.style.getPropertyPriority(property) }));
+    const previousOverflow = root.style.getPropertyValue("overflow");
+    const previousOverflowPriority = root.style.getPropertyPriority("overflow");
+    const scrollbarWidth = window.innerWidth - root.clientWidth;
+    const paddingRight = getComputedStyle(body).paddingRight;
+
+    // Fixed positioning also stops background touch scrolling on iOS Safari.
+    // Preserve the original offset and styles for close, navigation and unmount.
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = `-${scrollX}px`;
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) body.style.paddingRight = `calc(${paddingRight} + ${scrollbarWidth}px)`;
+    root.style.overflow = "hidden";
+    dialog.showModal();
+    closeButtonRef.current?.focus({ preventScroll: true });
+
+    return () => {
+      if (dialog.open) dialog.close();
+      for (const { property, value, priority } of previousBody) {
+        body.style.setProperty(property, value, priority);
+      }
+      root.style.setProperty("overflow", previousOverflow, previousOverflowPriority);
+      // Restore immediately even when the page normally uses smooth scrolling.
+      const previousBehavior = root.style.getPropertyValue("scroll-behavior");
+      const previousBehaviorPriority = root.style.getPropertyPriority("scroll-behavior");
+      root.style.setProperty("scroll-behavior", "auto", "important");
+      window.scrollTo({ left: scrollX, top: scrollY, behavior: "auto" });
+      root.style.setProperty("scroll-behavior", previousBehavior, previousBehaviorPriority);
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+    };
+  }, [isItemModalOpen]);
 
   useEffect(() => {
     void router.prefetch(previousHref);
@@ -189,6 +239,7 @@ export function FullMenuBrowser({
                 key={meal}
                 type="button"
                 className={`pill-link button-reset${selectedMeal === meal ? " active" : ""}`}
+                aria-pressed={selectedMeal === meal}
                 onClick={() => setSelectedMeal(meal)}
               >
                 {meal[0].toUpperCase() + meal.slice(1)}
@@ -240,7 +291,11 @@ export function FullMenuBrowser({
                                 key={getItemKey(item)}
                                 type="button"
                                 className="menu-item-card button-reset-plain"
-                                onClick={() => setSelectedItemKey(getItemKey(item))}
+                                aria-haspopup="dialog"
+                                onClick={(event) => {
+                                  itemTriggerRef.current = event.currentTarget;
+                                  setSelectedItemKey(getItemKey(item));
+                                }}
                               >
                                 <div className="menu-item-name">{item.name}</div>
                                 <div className="menu-item-meta">
@@ -288,13 +343,40 @@ export function FullMenuBrowser({
         )}
       </section>
       {selectedItem ? (
-        <div className="menu-modal-overlay" onClick={closeItemModal} role="presentation">
-          <div
+          <dialog
+            ref={dialogRef}
             className="menu-modal"
-            role="dialog"
             aria-modal="true"
             aria-labelledby="menu-item-modal-title"
-            onClick={(event) => event.stopPropagation()}
+            onCancel={(event) => {
+              event.preventDefault();
+              closeItemModal();
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== "Tab") return;
+              const focusable = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
+                'button, [href], input, select, textarea, [tabindex]',
+              )).filter((element) => element.tabIndex >= 0 &&
+                !element.hasAttribute("disabled") && element.getClientRects().length > 0);
+              const first = focusable[0];
+              const last = focusable[focusable.length - 1];
+              if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last?.focus({ preventScroll: true });
+              } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first?.focus({ preventScroll: true });
+              }
+            }}
+            onPointerDown={(event) => {
+              backdropPointerDownRef.current = event.target === event.currentTarget;
+            }}
+            onClick={(event) => {
+              if (!backdropPointerDownRef.current || event.target !== event.currentTarget) return;
+              const bounds = event.currentTarget.getBoundingClientRect();
+              if (event.clientX < bounds.left || event.clientX > bounds.right ||
+                  event.clientY < bounds.top || event.clientY > bounds.bottom) closeItemModal();
+            }}
           >
             <div className="menu-modal-header">
               <div>
@@ -307,6 +389,7 @@ export function FullMenuBrowser({
                 </h3>
               </div>
               <button
+                ref={closeButtonRef}
                 type="button"
                 className="menu-modal-close button-reset-plain"
                 onClick={closeItemModal}
@@ -315,7 +398,7 @@ export function FullMenuBrowser({
                 ×
               </button>
             </div>
-            <div className="menu-modal-body">
+            <div className="menu-modal-body" role="region" aria-label="Menu item details" tabIndex={0}>
               {selectedItem.icons.length > 0 ? (
                 <div className="menu-modal-icons">
                   {selectedItem.icons.map((icon) => (
@@ -385,8 +468,7 @@ export function FullMenuBrowser({
                 </div>
               ) : null}
             </div>
-          </div>
-        </div>
+          </dialog>
       ) : null}
     </>
   );
